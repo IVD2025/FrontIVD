@@ -96,7 +96,7 @@ const theme = createTheme({
   },
 });
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://backendivd-mbok.onrender.com';
 
 function Perfil() {
   const [perfil, setPerfil] = useState({
