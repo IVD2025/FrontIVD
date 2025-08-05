@@ -47,9 +47,7 @@ const Resultados = () => {
   const fetchResultados = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`https://backendd-q0zc.onrender.com/api/resultados?clubId=${user.id}`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const response = await axios.get(`http://localhost:5000/api/resultados?clubId=${user.id}`);
       setResultados(response.data);
       setError('');
     } catch (error) {

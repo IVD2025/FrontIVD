@@ -34,9 +34,9 @@ const ResultadosAtleta = () => {
 
   const fetchResultados = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/resultados/atleta'); // Endpoint para atletas
+      const response = await axios.get(`http://localhost:5000/api/resultados/atleta/${user.id}`);
       // Ordenar por fecha descendente
-      const sortedResultados = response.data.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      const sortedResultados = response.data.sort((a, b) => new Date(b.fechaEvento) - new Date(a.fechaEvento));
       setResultados(sortedResultados);
       setErrorMessage('');
     } catch (error) {
@@ -84,7 +84,7 @@ const ResultadosAtleta = () => {
                 sx={{ '&:hover': { backgroundColor: '#FAFAFF' }, transition: 'background-color 0.3s' }}
               >
                 <TableCell sx={{ color: '#333333' }}>
-                  {resultado.fecha ? new Date(resultado.fecha).toLocaleDateString('es-ES') : 'Sin fecha'}
+                  {resultado.fechaEvento ? new Date(resultado.fechaEvento).toLocaleDateString('es-ES') : 'Sin fecha'}
                 </TableCell>
                 <TableCell sx={{ color: '#333333' }}>{resultado.nombreEvento || 'Sin nombre'}</TableCell>
                 <TableCell sx={{ color: '#333333' }}>{resultado.disciplina || 'Sin disciplina'}</TableCell>

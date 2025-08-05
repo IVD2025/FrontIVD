@@ -2,15 +2,12 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const API_BASE_URL = 'http://localhost:5000';
 
 const RestablecerPassword = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -59,43 +56,30 @@ const RestablecerPassword = () => {
     );
   }
 
-  const inputContainerStyle = { position: 'relative', marginBottom: 16 };
-  const eyeIconStyle = { position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#666' };
-
   return (
-    <div style={{ maxWidth: 400, margin: '40px auto', background: '#F5E8C7', padding: 24, borderRadius: 12, fontFamily: "'Arial', 'Helvetica', sans-serif" }}>
-      <h2 style={{ color: '#800020', textAlign: 'center', fontFamily: "'Arial', 'Helvetica', sans-serif" }}>Restablecer Contraseña</h2>
+    <div style={{ maxWidth: 400, margin: '40px auto', background: '#F5E8C7', padding: 24, borderRadius: 12 }}>
+      <h2 style={{ color: '#800020', textAlign: 'center' }}>Restablecer Contraseña</h2>
       <form onSubmit={handleSubmit}>
-        <div style={{ ...inputContainerStyle }}>
-          <input
-            type={showNewPassword ? 'text' : 'password'}
-            placeholder="Nueva contraseña"
-            value={newPassword}
-            onChange={e => setNewPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: 12, borderRadius: 6, border: '1.5px solid #7A4069', fontFamily: "'Arial', 'Helvetica', sans-serif" }}
-          />
-          <span style={eyeIconStyle} onClick={() => setShowNewPassword(v => !v)}>
-            {showNewPassword ? <FaEyeSlash /> : <FaEye />}
-          </span>
-        </div>
-        <div style={{ ...inputContainerStyle }}>
-          <input
-            type={showConfirmPassword ? 'text' : 'password'}
-            placeholder="Confirmar contraseña"
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: 12, borderRadius: 6, border: '1.5px solid #7A4069', fontFamily: "'Arial', 'Helvetica', sans-serif" }}
-          />
-          <span style={eyeIconStyle} onClick={() => setShowConfirmPassword(v => !v)}>
-            {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-          </span>
-        </div>
+        <input
+          type="password"
+          placeholder="Nueva contraseña"
+          value={newPassword}
+          onChange={e => setNewPassword(e.target.value)}
+          required
+          style={{ width: '100%', padding: 12, borderRadius: 6, border: '1px solid #ccc', marginBottom: 16 }}
+        />
+        <input
+          type="password"
+          placeholder="Confirmar contraseña"
+          value={confirmPassword}
+          onChange={e => setConfirmPassword(e.target.value)}
+          required
+          style={{ width: '100%', padding: 12, borderRadius: 6, border: '1px solid #ccc', marginBottom: 16 }}
+        />
         <button
           type="submit"
           disabled={loading}
-          style={{ width: '100%', background: '#800020', color: '#fff', padding: 12, border: 'none', borderRadius: 6, fontWeight: 'bold', fontFamily: "'Arial', 'Helvetica', sans-serif" }}
+          style={{ width: '100%', background: '#800020', color: '#fff', padding: 12, border: 'none', borderRadius: 6, fontWeight: 'bold' }}
         >
           {loading ? 'Restableciendo...' : 'Restablecer Contraseña'}
         </button>

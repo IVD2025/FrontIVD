@@ -37,18 +37,19 @@ const PerfilAtleta = () => {
   const [mensaje, setMensaje] = useState('');
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !user.id) {
       navigate('/login');
-    } else {
-      fetchPerfil();
-      fetchClubes();
-      fetchSolicitud();
+      return;
     }
+    fetchPerfil();
+    fetchClubes();
+    fetchSolicitud();
     // eslint-disable-next-line
   }, [user]);
 
   const fetchPerfil = async () => {
     try {
+      if (!user?.id) return;
       setLoading(true);
       const response = await axios.get(`http://localhost:5000/api/registros/atleta/${user.id}`);
       setPerfil(response.data);
@@ -71,6 +72,7 @@ const PerfilAtleta = () => {
 
   const fetchSolicitud = async () => {
     try {
+      if (!user?.id) return;
       const response = await axios.get(`http://localhost:5000/api/registros/solicitudes-club?atletaId=${user.id}`);
       // Solo mostrar la última pendiente
       const pendientes = response.data.filter(s => s.estado === 'pendiente');
@@ -82,7 +84,9 @@ const PerfilAtleta = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setPerfil({ ...perfil, [name]: value });
+    if (perfil) {
+      setPerfil({ ...perfil, [name]: value });
+    }
   };
 
   const handleEdit = () => {
@@ -91,6 +95,10 @@ const PerfilAtleta = () => {
 
   const handleSave = async () => {
     try {
+      if (!perfil) {
+        setErrorMessage('No hay datos de perfil para guardar.');
+        return;
+      }
       const perfilToSave = {
         ...perfil,
         sexo: perfil.sexo === 'Hombre' ? 'masculino' : (perfil.sexo === 'Mujer' ? 'femenino' : perfil.sexo),
@@ -106,6 +114,7 @@ const PerfilAtleta = () => {
 
   const handleSolicitud = async () => {
     try {
+      if (!user?.id) return;
       if (solicitudIndependiente) {
         await axios.post('http://localhost:5000/api/registros/solicitudes-club', {
           atletaId: user.id,
@@ -129,6 +138,7 @@ const PerfilAtleta = () => {
 
   const handleEnviarSolicitud = async () => {
     try {
+      if (!user?.id) return;
       await axios.post('http://localhost:5000/api/registros/solicitudes-club', {
         atletaId: user.id,
         clubId: clubSeleccionado,
@@ -177,7 +187,7 @@ const PerfilAtleta = () => {
           <TextField
             label="Nombre"
             name="nombre"
-            value={perfil.nombre}
+            value={perfil?.nombre || ''}
             onChange={handleInputChange}
             fullWidth
             disabled={!editMode}
@@ -186,7 +196,7 @@ const PerfilAtleta = () => {
           <TextField
             label="Apellido Paterno"
             name="apellidopa"
-            value={perfil.apellidopa || ''}
+            value={perfil?.apellidopa || ''}
             onChange={handleInputChange}
             fullWidth
             disabled={!editMode}
@@ -195,7 +205,7 @@ const PerfilAtleta = () => {
           <TextField
             label="Apellido Materno"
             name="apellidoma"
-            value={perfil.apellidoma || ''}
+            value={perfil?.apellidoma || ''}
             onChange={handleInputChange}
             fullWidth
             disabled={!editMode}
@@ -204,7 +214,7 @@ const PerfilAtleta = () => {
           <TextField
             label="CURP"
             name="curp"
-            value={perfil.curp}
+            value={perfil?.curp || ''}
             fullWidth
             disabled
             sx={{ mb: 2 }}
@@ -214,7 +224,7 @@ const PerfilAtleta = () => {
             label="Fecha de Nacimiento"
             name="fechaNacimiento"
             type="date"
-            value={perfil.fechaNacimiento ? perfil.fechaNacimiento.slice(0, 10) : ''}
+            value={perfil?.fechaNacimiento ? perfil.fechaNacimiento.slice(0, 10) : ''}
             onChange={handleInputChange}
             fullWidth
             disabled={!editMode}
@@ -224,7 +234,7 @@ const PerfilAtleta = () => {
           <TextField
             label="Teléfono"
             name="telefono"
-            value={perfil.telefono || ''}
+            value={perfil?.telefono || ''}
             onChange={handleInputChange}
             fullWidth
             disabled={!editMode}
@@ -233,7 +243,7 @@ const PerfilAtleta = () => {
           <TextField
             label="Correo Electrónico"
             name="gmail"
-            value={perfil.gmail || ''}
+            value={perfil?.gmail || ''}
             onChange={handleInputChange}
             fullWidth
             disabled={!editMode}
@@ -242,7 +252,7 @@ const PerfilAtleta = () => {
           <TextField
             label="Sexo"
             name="sexo"
-            value={perfil.sexo || ''}
+            value={perfil?.sexo || ''}
             onChange={handleInputChange}
             fullWidth
             disabled={!editMode}
@@ -251,7 +261,7 @@ const PerfilAtleta = () => {
           <TextField
             label="Estado de Nacimiento"
             name="estadoNacimiento"
-            value={perfil.estadoNacimiento || ''}
+            value={perfil?.estadoNacimiento || ''}
             onChange={handleInputChange}
             fullWidth
             disabled={!editMode}
@@ -260,7 +270,7 @@ const PerfilAtleta = () => {
           <TextField
             label="Club Actual"
             name="club"
-            value={perfil.clubId ? (clubes.find(c => c._id === perfil.clubId)?.nombre || 'Club desconocido') : 'Independiente'}
+            value={perfil && perfil.clubId ? (clubes.find(c => c._id === perfil.clubId)?.nombre || 'Club desconocido') : 'Independiente'}
             fullWidth
             disabled
             sx={{ mb: 2 }}
@@ -271,13 +281,14 @@ const PerfilAtleta = () => {
           <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold', mb: 2 }}>
             Solicitud de Cambio de Club / Independiente
           </Typography>
-          {perfil.clubId ? (
+          {perfil && perfil.clubId ? (
             <Box>
               <Alert severity="info">Actualmente perteneces a un club. Si deseas dejar el club, haz clic en el botón.</Alert>
               <Button
                 variant="contained"
                 onClick={async () => {
                   try {
+                    if (!user?.id) return;
                     await axios.post('http://localhost:5000/api/registros/solicitudes-club', {
                       atletaId: user.id,
                       tipo: 'independiente',
@@ -316,6 +327,7 @@ const PerfilAtleta = () => {
                 variant="contained"
                 onClick={async () => {
                   try {
+                    if (!user?.id) return;
                     await axios.post('http://localhost:5000/api/registros/solicitudes-club', {
                       atletaId: user.id,
                       clubId: clubSeleccionado,

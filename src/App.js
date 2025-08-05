@@ -30,12 +30,16 @@ import EventosAtleta from "./Componentes/Atleta/EventosAtleta";
 import ConvocatoriaAtleta from "./Componentes/Atleta/ConvocatoriaAtleta";
 import PerfilAtleta from "./Componentes/Atleta/PerfilAtleta";
 import ResultadosAtleta from "./Componentes/Atleta/ResultadosAtleta";
+import EstadisticasAtleta from "./Componentes/Atleta/EstadisticasAtleta";
 import EventosClub from "./Componentes/Club/Eventos";
 import GestionAtletas from "./Componentes/Club/GestionAtletas";
 import PerfilClub from "./Componentes/Club/PerfilClub";
 import Resultados from "./Componentes/Club/Resultados";
 import Convocatoria from "./Componentes/Club/Convocatoria";
 import PieDePagina from "./Componentes/Compartidos/PieDePagina";
+import GestionResultados from "./Componentes/Administrativo/GestionResultados";
+import Reportes from "./Componentes/Administrativo/Reportes";
+import ValidacionCategoriaAutomatica from "./Componentes/Administrativo/ValidacionCategoriaAutomatica";
 
 import RecuperarCorreo from "./Componentes/Autenticacion/RecuperarCorreo";
 import VerificarCodigo from "./Componentes/Autenticacion/VerificarCodigo";
@@ -72,6 +76,9 @@ const App = () => {
             <Route path="/administrador/club" element={<Club />} />
             <Route path="/administrador/atleta" element={<Atleta />} />
             <Route path="/administrador/evento" element={<Eventos />} />
+            <Route path="/administrador/resultados" element={<GestionResultados />} />
+            <Route path="/administrador/reportes" element={<Reportes />} />
+            <Route path="/administrador/validacion-categoria" element={<ValidacionCategoriaAutomatica />} />
             <Route path="/administrador/politicas" element={<Politicas />} />
             <Route path="/administrador/terminos" element={<Terminos />} />
             <Route path="/administrador/vision" element={<Vision />} />
@@ -87,6 +94,7 @@ const App = () => {
             <Route path="/atleta/convocatoria" element={<ConvocatoriaAtleta />} />
             <Route path="/atleta/perfil" element={<PerfilAtleta />} />
             <Route path="/atleta/resultados" element={<ResultadosAtleta />} />
+            <Route path="/atleta/estadisticas" element={<EstadisticasAtleta />} />
             <Route path="/atleta/politicaspca" element={<PoliticasPCA />} />
             <Route path="/atleta/terminospca" element={<TerminosPCA />} />
             <Route path="/atleta/visionpca" element={<VisionPCA />} />
