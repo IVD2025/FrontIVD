@@ -106,6 +106,14 @@ const GestionClubes = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validar formato de teléfono (exactamente 10 dígitos)
+    const telefonoLimpio = formData.telefono.replace(/\D/g, '');
+    if (telefonoLimpio.length !== 10) {
+      setErrorMessage('El teléfono debe tener exactamente 10 dígitos.');
+      return;
+    }
+
     const formDataToSend = new FormData();
     formDataToSend.append('nombrehotel', formData.nombrehotel); // Nombre del club
     formDataToSend.append('direccion', formData.direccion);

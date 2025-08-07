@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-import { PDFDownloadLink, Document, Page, Text, View, Image, StyleSheet, pdf } from '@react-pdf/renderer';
+// import { PDFDownloadLink, Document, Page, Text, View, Image, StyleSheet, pdf } from '@react-pdf/renderer';
+import jsPDF from 'jspdf';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -235,17 +236,8 @@ const AgregarEvento = () => {
   };
 
   const handleCerrarPDF = () => {
-    try {
       setModalPDFOpen(false);
-      // Limpiar el estado después de un pequeño delay para evitar errores
-      setTimeout(() => {
         setEventoSeleccionado(null);
-      }, 100);
-    } catch (error) {
-      console.error('Error al cerrar modal PDF:', error);
-      setModalPDFOpen(false);
-      setEventoSeleccionado(null);
-    }
   };
 
   const obtenerColorEstado = (estado) => {
@@ -269,266 +261,192 @@ const AgregarEvento = () => {
     }
   };
 
-  // PDF styles
-  const pdfStyles = StyleSheet.create({
-    page: { 
-      padding: 40, 
-      fontFamily: 'Helvetica',
-      backgroundColor: '#ffffff'
-    },
-    header: { 
-      flexDirection: 'row', 
-      alignItems: 'center', 
-      marginBottom: 30,
-      borderBottom: '2px solid #800020',
-      paddingBottom: 20
-    },
-    logo: { 
-      width: 80, 
-      height: 80, 
-      marginRight: 20 
-    },
-    headerText: {
-      flex: 1
-    },
-    institutionTitle: { 
-      fontSize: 18, 
-      fontWeight: 'bold', 
-      color: '#800020', 
-      marginBottom: 4,
-      textAlign: 'center'
-    },
-    institutionSubtitle: { 
-      fontSize: 12, 
-      color: '#666', 
-      marginBottom: 8,
-      textAlign: 'center'
-    },
-    documentTitle: { 
-      fontSize: 16, 
-      fontWeight: 'bold', 
-      color: '#800020', 
-      textAlign: 'center',
-      textTransform: 'uppercase'
-    },
-    dateSection: {
-      marginBottom: 20,
-      textAlign: 'right'
-    },
-    dateText: {
-      fontSize: 12,
-      color: '#666',
-      fontStyle: 'italic'
-    },
-    saludoSection: {
-      marginBottom: 25
-    },
-    saludoText: {
-      fontSize: 12,
-      color: '#333',
-      lineHeight: 1.5,
-      textAlign: 'justify'
-    },
-    mainSection: {
-      marginBottom: 25,
-      textAlign: 'center'
-    },
-    eventTitle: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: '#800020',
-      textTransform: 'uppercase',
-      textAlign: 'center'
-    },
-    detailsSection: {
-      marginBottom: 20
-    },
-    sectionTitle: {
-      fontSize: 14,
-      fontWeight: 'bold',
-      color: '#800020',
-      marginBottom: 12,
-      textTransform: 'uppercase'
-    },
-    detailRow: {
-      flexDirection: 'row',
-      marginBottom: 8,
-      alignItems: 'flex-start'
-    },
-    detailLabel: {
-      fontSize: 11,
-      fontWeight: 'bold',
-      color: '#333',
-      width: 120,
-      marginRight: 10
-    },
-    detailValue: {
-      fontSize: 11,
-      color: '#333',
-      flex: 1
-    },
-    descriptionSection: {
-      marginBottom: 20
-    },
-    descriptionText: {
-      fontSize: 11,
-      color: '#333',
-      lineHeight: 1.4,
-      textAlign: 'justify'
-    },
-    instructionsSection: {
-      marginBottom: 25
-    },
-    instructionText: {
-      fontSize: 10,
-      color: '#333',
-      marginBottom: 6,
-      lineHeight: 1.3
-    },
-    footer: {
-      marginTop: 30,
-      paddingTop: 20,
-      borderTop: '1px solid #ccc',
-      textAlign: 'center'
-    },
-    footerText: {
-      fontSize: 9,
-      color: '#666',
-      marginBottom: 4
-    }
-  });
-
-  const EventoPDF = ({ evento, logoUrl }) => {
+  // Función para generar PDF del evento
+  const generarPDFEvento = (evento) => {
+    try {
+      const doc = new jsPDF();
+      
+      // Variables para posicionamiento
+      let y = 15;
+      const margin = 20;
+      const pageWidth = doc.internal.pageSize.width;
+      const contentWidth = pageWidth - (2 * margin);
+      
+      // Función para agregar texto con wrap
+      const addText = (text, x, y, maxWidth) => {
+        const lines = doc.splitTextToSize(text, maxWidth);
+        doc.text(lines, x, y);
+        return y + (lines.length * 5);
+      };
+      
+      // Función para agregar título centrado
+      const addCenteredTitle = (text, y, fontSize = 16) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', 'bold');
+        const textWidth = doc.getTextWidth(text);
+        const x = (pageWidth - textWidth) / 2;
+        doc.text(text, x, y);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        return y + 8;
+      };
+      
+      // Función para agregar subtítulo
+      const addSubtitle = (text, y, fontSize = 12) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(128, 0, 32); // Color #800020 (marrón oscuro)
+        doc.text(text, margin, y);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        return y + 6;
+      };
+      
+      // Logo en la esquina superior izquierda
+      if (logoUrl) {
+        try {
+          // Agregar logo circular en la esquina superior izquierda
+          doc.addImage(logoUrl, 'JPEG', margin, y, 20, 20);
+          y += 25; // Espacio después del logo
+        } catch (logoError) {
+          console.warn('No se pudo cargar el logo:', logoError);
+        }
+      }
+      
+      // Títulos del encabezado (centrados)
+      y = addCenteredTitle('INSTITUTO VERACRUZANO DEL DEPORTE', y, 16);
+      y = addCenteredTitle('Gobierno del Estado de Veracruz', y, 10);
+      y = addCenteredTitle('CONVOCATORIA OFICIAL', y, 14);
+      
+      y += 10;
+      
+      // Línea horizontal marrón separando el encabezado
+      doc.setDrawColor(128, 0, 32); // Color marrón #800020
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 12;
+      
+      // Fecha
     const fechaActual = new Date().toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
-    
-    const fechaEvento = evento.fecha ? new Date(evento.fecha).toLocaleDateString('es-ES', {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(`Veracruz, Ver. a ${fechaActual}`, pageWidth - margin - doc.getTextWidth(`Veracruz, Ver. a ${fechaActual}`), y);
+      doc.setFontSize(10);
+      
+      y += 10;
+      
+      // Introducción
+      const introText = 'El Instituto Veracruzano del Deporte, a través de la presente convocatoria, invita a todos los atletas interesados a participar en el siguiente evento deportivo:';
+      y = addText(introText, margin, y, contentWidth);
+      
+      y += 8;
+      
+      // Título del evento (centrado y en marrón)
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(128, 0, 32); // Color marrón #800020
+      const eventTitle = evento.titulo || 'Evento Deportivo';
+      const eventTitleWidth = doc.getTextWidth(eventTitle);
+      const eventTitleX = (pageWidth - eventTitleWidth) / 2;
+      doc.text(eventTitle, eventTitleX, y);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      y += 10;
+      
+      // Información del evento
+      y = addSubtitle('INFORMACIÓN DEL EVENTO:', y, 12);
+      
+      // Detalles del evento (más compactos)
+      const detalles = [
+        { label: 'Disciplina:', value: evento.disciplina || 'No especificada' },
+        { label: 'Categoría:', value: evento.categoria || 'No especificada' },
+        { label: 'Género:', value: evento.genero === 'mixto' ? 'Mixto (Masculino y Femenino)' : 
+                                  evento.genero === 'masculino' ? 'Masculino' : 
+                                  evento.genero === 'femenino' ? 'Femenino' : 'No especificado' },
+        { label: 'Rango de Edad:', value: `De ${evento.edadMin || 'N/A'} a ${evento.edadMax || 'N/A'} años` },
+        { label: 'Lugar:', value: evento.lugar || 'No especificado' },
+        { label: 'Fecha del Evento:', value: evento.fecha ? new Date(evento.fecha).toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    }) : '';
-    
-    const fechaCierre = evento.fechaCierre ? new Date(evento.fechaCierre).toLocaleDateString('es-ES', {
+          }) : 'No especificada' },
+        { label: 'Hora:', value: evento.hora || 'No especificada' },
+        { label: 'Fecha Límite de Inscripción:', value: evento.fechaCierre ? new Date(evento.fechaCierre).toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    }) : '';
-
-    return (
-      <Document>
-        <Page size="A4" style={pdfStyles.page}>
-          {/* Encabezado con logo y datos institucionales */}
-          <View style={pdfStyles.header}>
-            {logoUrl && <Image src={logoUrl} style={pdfStyles.logo} />}
-            <View style={pdfStyles.headerText}>
-              <Text style={pdfStyles.institutionTitle}>INSTITUTO VERACRUZANO DEL DEPORTE</Text>
-              <Text style={pdfStyles.institutionSubtitle}>Gobierno del Estado de Veracruz</Text>
-              <Text style={pdfStyles.documentTitle}>CONVOCATORIA OFICIAL</Text>
-            </View>
-          </View>
-
-          {/* Fecha del documento */}
-          <View style={pdfStyles.dateSection}>
-            <Text style={pdfStyles.dateText}>Veracruz, Ver. a {fechaActual}</Text>
-          </View>
-
-          {/* Saludo y presentación */}
-          <View style={pdfStyles.saludoSection}>
-            <Text style={pdfStyles.saludoText}>
-              El Instituto Veracruzano del Deporte, a través de la presente convocatoria, invita a todos los atletas interesados a participar en el siguiente evento deportivo:
-            </Text>
-          </View>
-
-          {/* Información principal del evento */}
-          <View style={pdfStyles.mainSection}>
-            <Text style={pdfStyles.eventTitle}>{evento.titulo}</Text>
-          </View>
-
-          {/* Detalles del evento */}
-          <View style={pdfStyles.detailsSection}>
-            <Text style={pdfStyles.sectionTitle}>INFORMACIÓN DEL EVENTO:</Text>
-            
-            <View style={pdfStyles.detailRow}>
-              <Text style={pdfStyles.detailLabel}>• Disciplina:</Text>
-              <Text style={pdfStyles.detailValue}>{evento.disciplina}</Text>
-            </View>
-            
-            <View style={pdfStyles.detailRow}>
-              <Text style={pdfStyles.detailLabel}>• Categoría:</Text>
-              <Text style={pdfStyles.detailValue}>{evento.categoria}</Text>
-            </View>
-            
-            <View style={pdfStyles.detailRow}>
-              <Text style={pdfStyles.detailLabel}>• Género:</Text>
-              <Text style={pdfStyles.detailValue}>{evento.genero === 'mixto' ? 'Mixto (Masculino y Femenino)' : evento.genero === 'masculino' ? 'Masculino' : 'Femenino'}</Text>
-            </View>
-            
-            <View style={pdfStyles.detailRow}>
-              <Text style={pdfStyles.detailLabel}>• Rango de Edad:</Text>
-              <Text style={pdfStyles.detailValue}>De {evento.edadMin} a {evento.edadMax} años</Text>
-            </View>
-            
-            <View style={pdfStyles.detailRow}>
-              <Text style={pdfStyles.detailLabel}>• Lugar:</Text>
-              <Text style={pdfStyles.detailValue}>{evento.lugar}</Text>
-            </View>
-            
-            <View style={pdfStyles.detailRow}>
-              <Text style={pdfStyles.detailLabel}>• Fecha del Evento:</Text>
-              <Text style={pdfStyles.detailValue}>{fechaEvento}</Text>
-            </View>
-            
-            <View style={pdfStyles.detailRow}>
-              <Text style={pdfStyles.detailLabel}>• Hora:</Text>
-              <Text style={pdfStyles.detailValue}>{evento.hora}</Text>
-            </View>
-            
-            <View style={pdfStyles.detailRow}>
-              <Text style={pdfStyles.detailLabel}>• Fecha Límite de Inscripción:</Text>
-              <Text style={pdfStyles.detailValue}>{fechaCierre}</Text>
-            </View>
-          </View>
-
-          {/* Descripción adicional */}
-          {evento.descripcion && (
-            <View style={pdfStyles.descriptionSection}>
-              <Text style={pdfStyles.sectionTitle}>INFORMACIÓN ADICIONAL:</Text>
-              <Text style={pdfStyles.descriptionText}>{evento.descripcion}</Text>
-            </View>
-          )}
-
-          {/* Instrucciones */}
-          <View style={pdfStyles.instructionsSection}>
-            <Text style={pdfStyles.sectionTitle}>INSTRUCCIONES:</Text>
-            <Text style={pdfStyles.instructionText}>
-              • Los interesados deberán registrarse a través de la plataforma oficial del Instituto Veracruzano del Deporte.
-            </Text>
-            <Text style={pdfStyles.instructionText}>
-              • Es obligatorio presentar la convocatoria  oficial el día del evento.
-            </Text>
-            <Text style={pdfStyles.instructionText}>
-              • Se recomienda llegar con 30 minutos de anticipación.
-            </Text>
-            <Text style={pdfStyles.instructionText}>
-              • Para mayor información, consultar la página web oficial o contactar a la dirección de deportes.
-            </Text>
-          </View>
-
-          {/* Pie de página */}
-          <View style={pdfStyles.footer}>
-            <Text style={pdfStyles.footerText}>
-              Esta convocatoria es oficial y ha sido emitida por el Instituto Veracruzano del Deporte.
-            </Text>
-            <Text style={pdfStyles.footerText}>
-              Documento generado el {fechaActual}
-            </Text>
-          </View>
-        </Page>
-      </Document>
-    );
+          }) : 'No especificada' }
+      ];
+      
+      detalles.forEach(detalle => {
+        const labelText = `• ${detalle.label}`;
+        const valueText = detalle.value;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(labelText, margin, y);
+        doc.setFont('helvetica', 'normal');
+        
+        const labelWidth = doc.getTextWidth(labelText);
+        const valueX = margin + labelWidth + 3;
+        const valueWidth = contentWidth - labelWidth - 3;
+        
+        y = addText(valueText, valueX, y, valueWidth);
+        y += 3;
+      });
+      
+      // Descripción adicional si existe
+      if (evento.descripcion) {
+        y += 3;
+        y = addSubtitle('INFORMACIÓN ADICIONAL:', y, 12);
+        y = addText(evento.descripcion, margin, y, contentWidth);
+      }
+      
+      y += 6;
+      
+      // Instrucciones
+      y = addSubtitle('INSTRUCCIONES:', y, 12);
+      
+      const instrucciones = [
+        'Los interesados deberán registrarse a través de la plataforma oficial del Instituto Veracruzano del Deporte.',
+        'Es obligatorio presentar la convocatoria oficial el día del evento.',
+        'Se recomienda llegar con 30 minutos de anticipación.',
+        'Para mayor información, consultar la página web oficial o contactar a la dirección de deportes.'
+      ];
+      
+      instrucciones.forEach(instruccion => {
+        y = addText(`• ${instruccion}`, margin, y, contentWidth);
+        y += 2;
+      });
+      
+      // Pie de página
+      y += 8;
+      
+      // Línea divisoria gris clara
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 6;
+      
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Esta convocatoria es oficial y ha sido emitida por el Instituto Veracruzano del Deporte.', pageWidth / 2, y, { align: 'center' });
+      y += 4;
+      doc.text(`Documento generado el ${fechaActual}`, pageWidth / 2, y, { align: 'center' });
+      
+      // Descargar el PDF
+      const fileName = `Convocatoria_${evento.titulo || 'evento'}.pdf`;
+      doc.save(fileName);
+      
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      alert('Error al generar el documento PDF. Intente de nuevo.');
+    }
   };
 
   return (
@@ -899,16 +817,6 @@ const AgregarEvento = () => {
         onClose={handleCerrarPDF} 
         maxWidth="md" 
         fullWidth
-        TransitionProps={{
-          onExited: () => {
-            // Limpiar el estado cuando el modal se cierre completamente
-            try {
-              setEventoSeleccionado(null);
-            } catch (error) {
-              console.error('Error al limpiar estado del modal:', error);
-            }
-          }
-        }}
       >
         <DialogTitle>
           <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
@@ -921,10 +829,13 @@ const AgregarEvento = () => {
               <Typography variant="body1" sx={{ mb: 3 }}>
                 Haz clic en el botón para descargar la convocatoria oficial en formato PDF
               </Typography>
-              <PDFDownloadLink
-                document={<EventoPDF evento={eventoSeleccionado} logoUrl={logoUrl} />}
-                fileName={`Convocatoria_${eventoSeleccionado.titulo.replace(/\s+/g, '_')}.pdf`}
-                style={{
+              <Button
+                variant="contained"
+                onClick={() => generarPDFEvento(eventoSeleccionado)}
+                color="success"
+                startIcon={pdfLoading ? <CircularProgress size={20} /> : <PictureAsPdfIcon />}
+                disabled={pdfLoading}
+                sx={{
                   textDecoration: 'none',
                   padding: '12px 24px',
                   backgroundColor: '#800020',
@@ -935,17 +846,8 @@ const AgregarEvento = () => {
                   margin: '8px'
                 }}
               >
-                {({ blob, url, loading, error }) => {
-                  if (error) {
-                    return (
-                      <Box sx={{ color: 'red', mb: 2 }}>
-                        Error al generar PDF: {error.message}
-                      </Box>
-                    );
-                  }
-                  return loading ? 'Generando Convocatoria...' : '📥 Descargar Convocatoria Oficial';
-                }}
-              </PDFDownloadLink>
+                {pdfLoading ? 'Generando Convocatoria...' : '📥 Descargar Convocatoria Oficial'}
+              </Button>
               <Box sx={{ mt: 3 }}>
                 <Typography variant="body2" color="textSecondary">
                   La convocatoria incluye toda la información oficial del evento con el logo del instituto y redacción profesional

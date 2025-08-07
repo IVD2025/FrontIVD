@@ -25,9 +25,11 @@ const Politica = () => {
     try {
       const response = await axios.get('http://localhost:5000/api/politicas');
       const formattedPoliticas = response.data.map((p) => ({
-        ...p,
-        createdAt: new Date(p.createdAt),
-        updatedAt: p.updatedAt ? new Date(p.updatedAt) : null,
+        _id: p._id,
+        titulo: p.titulo || '',
+        contenido: p.contenido || '',
+        createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
+        updatedAt: p.updatedAt ? new Date(p.updatedAt) : null
       }));
       setPoliticas(formattedPoliticas);
     } catch (err) {
@@ -42,6 +44,7 @@ const Politica = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'titulo' && value.length > 255) return;
+    if (name === 'contenido' && value.length > 2000) return;
     setPolitica({ ...politica, [name]: value });
   };
 
@@ -50,10 +53,11 @@ const Politica = () => {
 
     if (!politica.titulo.trim() || !politica.contenido.trim()) {
       MySwal.fire({
-        title: 'Error!',
-        text: 'Por favor, llena todos los campos requeridos.',
+        title: '¡Error!',
+        text: 'El título y el contenido son obligatorios.',
         icon: 'error',
-        confirmButtonText: 'OK',
+        confirmButtonText: 'Aceptar',
+        confirmButtonColor: '#800020',
       });
       return;
     }
@@ -65,36 +69,55 @@ const Politica = () => {
 
       if (editingId) {
         response = await axios.put(`http://localhost:5000/api/politicas/${editingId}`, payload);
-        if (response.status === 200) {
+        if (response.status === 200 || response.status === 201) {
           MySwal.fire({
-            title: 'Éxito!',
-            text: 'La política ha sido actualizada correctamente.',
+            title: '¡Éxito!',
+            text: 'Política actualizada correctamente.',
             icon: 'success',
-            confirmButtonText: 'OK',
+            confirmButtonText: 'Aceptar',
+            confirmButtonColor: '#7A4069',
           });
-          setPoliticas(politicas.map((p) => p._id.toString() === editingId ? { ...response.data, createdAt: new Date(response.data.createdAt), updatedAt: new Date(response.data.updatedAt) } : p));
+          // Actualizar la política en el estado local con verificación de datos
+          const politicaActualizada = {
+            _id: response.data._id,
+            titulo: response.data.titulo || '',
+            contenido: response.data.contenido || '',
+            createdAt: response.data.createdAt ? new Date(response.data.createdAt) : new Date(),
+            updatedAt: response.data.updatedAt ? new Date(response.data.updatedAt) : new Date()
+          };
+          setPoliticas(politicas.map((p) => p._id.toString() === editingId ? politicaActualizada : p));
         } else {
           throw new Error(response.data?.message || 'Error desconocido');
         }
       } else {
         response = await axios.post('http://localhost:5000/api/politicas', payload);
         MySwal.fire({
-          title: 'Éxito!',
-          text: 'La política ha sido creada correctamente.',
+          title: '¡Éxito!',
+          text: 'Política creada correctamente.',
           icon: 'success',
-          confirmButtonText: 'OK',
+          confirmButtonText: 'Aceptar',
+          confirmButtonColor: '#7A4069',
         });
-        setPoliticas([...politicas, { ...response.data, createdAt: new Date(response.data.createdAt), updatedAt: new Date(response.data.updatedAt) }]);
+        // Como solo puede haber una política, reemplazar completamente el array
+        const nuevaPolitica = {
+          _id: response.data._id,
+          titulo: response.data.titulo || '',
+          contenido: response.data.contenido || '',
+          createdAt: response.data.createdAt ? new Date(response.data.createdAt) : new Date(),
+          updatedAt: response.data.updatedAt ? new Date(response.data.updatedAt) : new Date()
+        };
+        setPoliticas([nuevaPolitica]);
       }
       setPolitica({ titulo: '', contenido: '' });
       setEditingId(null);
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'No se pudo guardar la política. Intenta de nuevo.';
       MySwal.fire({
-        title: 'Error!',
+        title: '¡Error!',
         text: errorMessage,
         icon: 'error',
-        confirmButtonText: 'OK',
+        confirmButtonText: 'Aceptar',
+        confirmButtonColor: '#800020',
       });
       console.error('Error al guardar política:', err.response ? err.response.data : err.message);
     } finally {
@@ -105,7 +128,7 @@ const Politica = () => {
   const handleDelete = async (id) => {
     const result = await MySwal.fire({
       title: '¿Estás seguro?',
-      text: 'No podrás revertir esto después de eliminarlo.',
+      text: 'Esta acción eliminará la política actual y no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#800020',
@@ -118,24 +141,23 @@ const Politica = () => {
       setLoading(true);
       try {
         const response = await axios.delete(`http://localhost:5000/api/politicas/${id}`);
-        if (response.status === 200) {
-          setPoliticas(politicas.filter((p) => p._id.toString() !== id));
-          MySwal.fire({
-            title: 'Eliminado!',
-            text: 'La política ha sido eliminada.',
-            icon: 'success',
-            confirmButtonText: 'OK',
-          });
-        } else {
-          throw new Error(response.data?.message || 'Error desconocido');
-        }
-      } catch (err) {
-        const errorMessage = err.response?.data?.message || 'Hubo un problema al intentar eliminar la política.';
+        // Limpiar completamente el array de políticas
+        setPoliticas([]);
         MySwal.fire({
-          title: 'Error!',
+          title: '¡Éxito!',
+          text: 'Política eliminada correctamente.',
+          icon: 'success',
+          confirmButtonText: 'Aceptar',
+          confirmButtonColor: '#7A4069',
+        });
+      } catch (err) {
+        const errorMessage = err.response?.data?.message || 'No se pudo eliminar la política.';
+        MySwal.fire({
+          title: '¡Error!',
           text: errorMessage,
           icon: 'error',
-          confirmButtonText: 'OK',
+          confirmButtonText: 'Aceptar',
+          confirmButtonColor: '#800020',
         });
         console.error('Error al eliminar política:', err.response ? err.response.data : err.message);
       } finally {
@@ -160,35 +182,46 @@ const Politica = () => {
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>Gestión de Políticas</h1>
-      {loading && <p style={{ textAlign: 'center', color: '#7A4069', fontSize: '18px' }}>Cargando...</p>}
-      {error && <p style={{ textAlign: 'center', color: '#D32F2F', fontSize: '18px' }}>{error}</p>}
+      <div style={styles.infoBox}>
+        <p style={styles.infoText}>
+          <strong>Nota:</strong> Solo puede existir una política de privacidad activa en el sistema. 
+          Al crear una nueva política, se eliminará automáticamente la anterior. 
+          Esta política se mostrará en todos los pies de página del sitio.
+        </p>
+      </div>
+      {loading && <p style={styles.loading}>Cargando...</p>}
+      {error && <p style={styles.error}>{error}</p>}
       <div style={styles.flexContainer}>
         <section style={styles.gestionPoliticaContainer}>
           <h2 style={styles.subtitle}>Gestión de Política</h2>
           <form onSubmit={handleSubmit} style={styles.form}>
             <div style={styles.formGrid}>
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Título</label>
+                <label style={styles.label}>Título (máx. 255 caracteres)</label>
                 <input
                   type="text"
                   name="titulo"
                   placeholder="Título de la política"
                   value={politica.titulo}
                   onChange={handleChange}
+                  maxLength={255}
                   required
                   style={styles.input}
                 />
+                <span style={styles.charCount}>{politica.titulo.length}/255</span>
               </div>
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Contenido</label>
+                <label style={styles.label}>Contenido (máx. 2000 caracteres)</label>
                 <textarea
                   name="contenido"
-                  placeholder="Contenido de la política"
+                  placeholder="Contenido de la política (usa saltos de línea para separar puntos)"
                   value={politica.contenido}
                   onChange={handleChange}
+                  maxLength={2000}
                   required
-                  style={{ ...styles.input, height: '100px', resize: 'vertical' }}
+                  style={{ ...styles.input, height: '150px', resize: 'vertical' }}
                 />
+                <span style={styles.charCount}>{politica.contenido.length}/2000</span>
               </div>
             </div>
             <div style={styles.buttonGroup}>
@@ -205,32 +238,55 @@ const Politica = () => {
         </section>
 
         <section style={styles.politicasGuardadasContainer}>
-          <h2 style={styles.subtitle}>Políticas Guardadas</h2>
-          {politicas.length === 0 && !loading && <p>No hay políticas guardadas.</p>}
-          {politicas.map((politica) => (
-            <div key={politica._id} style={styles.politicaItem}>
-              <p><strong>Título:</strong> {politica.titulo}</p>
-              <p><strong>Contenido:</strong> {politica.contenido}</p>
-              <p><strong>Fecha de Creación:</strong> {politica.createdAt.toLocaleString()}</p>
-              <p><strong>Última Actualización:</strong> {politica.updatedAt ? politica.updatedAt.toLocaleString() : 'N/A'}</p>
-              <div style={styles.buttonGroup}>
-                <button
-                  style={styles.editButton}
-                  onClick={() => handleEdit(politica)}
-                  disabled={loading}
-                >
-                  Editar
-                </button>
-                <button
-                  style={styles.deleteButton}
-                  onClick={() => handleDelete(politica._id.toString())}
-                  disabled={loading}
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          ))}
+          <h2 style={styles.subtitle}>Política Actual</h2>
+          {politicas.length === 0 && !loading && <p>No hay políticas guardadas. Crea la primera política de privacidad del sistema.</p>}
+          {politicas.length > 0 && (
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Título</th>
+                  <th style={styles.th}>Contenido</th>
+                  <th style={styles.th}>Fecha de Creación</th>
+                  <th style={styles.th}>Última Actualización</th>
+                  <th style={styles.th}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {politicas.map((politica) => (
+                  <tr key={politica._id} style={styles.tr}>
+                    <td style={styles.td}>{politica.titulo}</td>
+                    <td style={styles.td}>
+                      <ul style={styles.contentList}>
+                        {politica.contenido ? politica.contenido.split('\n').map((item, index) => (
+                          item.trim() && <li key={index} style={styles.contentItem}>{item.trim()}</li>
+                        )) : <li style={styles.contentItem}>Sin contenido</li>}
+                      </ul>
+                    </td>
+                    <td style={styles.td}>{politica.createdAt.toLocaleString()}</td>
+                    <td style={styles.td}>{politica.updatedAt ? politica.updatedAt.toLocaleString() : 'N/A'}</td>
+                    <td style={styles.td}>
+                      <div style={styles.buttonGroup}>
+                        <button
+                          style={styles.editButton}
+                          onClick={() => handleEdit(politica)}
+                          disabled={loading}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          style={styles.deleteButton}
+                          onClick={() => handleDelete(politica._id.toString())}
+                          disabled={loading}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       </div>
     </div>
@@ -315,6 +371,12 @@ const styles = {
     fontWeight: '500',
     color: '#333333',
   },
+  charCount: {
+    fontSize: '12px',
+    color: '#7A4069',
+    textAlign: 'right',
+    marginTop: '4px',
+  },
   buttonGroup: {
     marginTop: '28px',
     display: 'flex',
@@ -357,10 +419,55 @@ const styles = {
     boxShadow: '0 4px 10px rgba(211, 47, 47, 0.3)',
     transition: 'transform 0.25s ease, box-shadow 0.25s ease',
   },
-  politicaItem: {
-    padding: '15px',
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+  },
+  th: {
+    background: '#800020',
+    color: '#FFFFFF',
+    padding: '12px',
+    textAlign: 'left',
+    borderBottom: '2px solid #F5E8C7',
+  },
+  tr: {
     borderBottom: '1px solid #EEEEEE',
-    marginBottom: '10px',
+  },
+  td: {
+    padding: '12px',
+    verticalAlign: 'top',
+  },
+  contentList: {
+    listStyleType: 'disc',
+    paddingLeft: '20px',
+    margin: '10px 0',
+  },
+  contentItem: {
+    margin: '5px 0',
+    color: '#333333',
+  },
+  loading: {
+    textAlign: 'center',
+    color: '#7A4069',
+    fontSize: '18px',
+  },
+  error: {
+    textAlign: 'center',
+    color: '#D32F2F',
+    fontSize: '18px',
+  },
+  infoBox: {
+    background: '#E3F2FD',
+    border: '2px solid #2196F3',
+    borderRadius: '8px',
+    padding: '15px',
+    marginBottom: '20px',
+  },
+  infoText: {
+    margin: '0',
+    color: '#1976D2',
+    fontSize: '14px',
+    lineHeight: '1.5',
   },
 };
 

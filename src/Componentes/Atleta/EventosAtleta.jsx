@@ -24,7 +24,6 @@ import Chip from '@mui/material/Chip';
 import Snackbar from '@mui/material/Snackbar';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useAuth } from '../Autenticacion/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -60,8 +59,10 @@ const EventosAtleta = () => {
       setLoading(true);
       setErrorMessage('');
       
-      const response = await axios.get('http://localhost:5000/api/eventos/atleta');
-      setEventos(response.data || []);
+      const response = await axios.get('http://localhost:5000/api/eventos');
+      const fechaActual = new Date();
+      const eventosFuturos = response.data.filter(evento => new Date(evento.fecha) > fechaActual);
+      setEventos(eventosFuturos || []);
     } catch (error) {
       console.error('Error al obtener eventos:', error);
       setErrorMessage('Error al cargar los eventos. Intente de nuevo.');
@@ -110,7 +111,7 @@ const EventosAtleta = () => {
       setInscribiendo(true);
       
       const inscripcionData = {
-        eventoId: evento._id,
+        eventoId: evento._id, 
         atletaId: user.id,
         datosAtleta: {
           nombre: user.nombre,
@@ -130,9 +131,7 @@ const EventosAtleta = () => {
         severity: 'success'
       });
 
-      // Actualizar la lista de inscripciones
       await fetchInscripciones();
-      
     } catch (error) {
       console.error('Error al inscribirse:', error);
       setSnackbar({
@@ -170,127 +169,30 @@ const EventosAtleta = () => {
 
   // PDF styles
   const pdfStyles = StyleSheet.create({
-    page: { 
-      padding: 40, 
-      fontFamily: 'Helvetica',
-      backgroundColor: '#ffffff'
-    },
-    header: { 
-      flexDirection: 'row', 
-      alignItems: 'center', 
-      marginBottom: 30,
-      borderBottom: '2px solid #800020',
-      paddingBottom: 20
-    },
-    logo: { 
-      width: 80, 
-      height: 80, 
-      marginRight: 20 
-    },
-    headerText: {
-      flex: 1
-    },
-    institutionTitle: { 
-      fontSize: 18, 
-      fontWeight: 'bold', 
-      color: '#800020', 
-      marginBottom: 4,
-      textAlign: 'center'
-    },
-    institutionSubtitle: { 
-      fontSize: 12, 
-      color: '#666', 
-      marginBottom: 8,
-      textAlign: 'center'
-    },
-    documentTitle: { 
-      fontSize: 16, 
-      fontWeight: 'bold', 
-      color: '#800020', 
-      textAlign: 'center',
-      textTransform: 'uppercase'
-    },
-    dateSection: {
-      marginBottom: 20,
-      textAlign: 'right'
-    },
-    dateText: {
-      fontSize: 12,
-      color: '#666'
-    },
-    saludoSection: {
-      marginBottom: 20
-    },
-    saludoText: {
-      fontSize: 12,
-      lineHeight: 1.5,
-      textAlign: 'justify'
-    },
-    mainSection: {
-      marginBottom: 25,
-      textAlign: 'center'
-    },
-    eventTitle: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: '#800020',
-      textTransform: 'uppercase'
-    },
-    detailsSection: {
-      marginBottom: 20
-    },
-    sectionTitle: {
-      fontSize: 14,
-      fontWeight: 'bold',
-      color: '#800020',
-      marginBottom: 10,
-      textTransform: 'uppercase'
-    },
-    detailRow: {
-      flexDirection: 'row',
-      marginBottom: 8,
-      alignItems: 'flex-start'
-    },
-    detailLabel: {
-      fontSize: 11,
-      fontWeight: 'bold',
-      width: 120,
-      color: '#333'
-    },
-    detailValue: {
-      fontSize: 11,
-      flex: 1,
-      color: '#666'
-    },
-    descriptionSection: {
-      marginBottom: 20
-    },
-    descriptionText: {
-      fontSize: 11,
-      lineHeight: 1.4,
-      textAlign: 'justify',
-      color: '#666'
-    },
-    instructionsSection: {
-      marginBottom: 20
-    },
-    instructionText: {
-      fontSize: 10,
-      lineHeight: 1.3,
-      marginBottom: 5,
-      color: '#666'
-    },
-    footer: {
-      marginTop: 30,
-      paddingTop: 20,
-      borderTop: '1px solid #ddd',
-      textAlign: 'center'
-    },
-    footerText: {
-      fontSize: 9,
-      color: '#999',
-      marginBottom: 5
-    }
+    page: { padding: 40, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
+    header: { flexDirection: 'row', alignItems: 'center', marginBottom: 30, borderBottom: '2px solid #800020', paddingBottom: 20 },
+    logo: { width: 80, height: 80, marginRight: 20 },
+    headerText: { flex: 1 },
+    institutionTitle: { fontSize: 18, fontWeight: 'bold', color: '#800020', marginBottom: 4, textAlign: 'center' },
+    institutionSubtitle: { fontSize: 12, color: '#666', marginBottom: 8, textAlign: 'center' },
+    documentTitle: { fontSize: 16, fontWeight: 'bold', color: '#800020', textAlign: 'center', textTransform: 'uppercase' },
+    dateSection: { marginBottom: 20, textAlign: 'right' },
+    dateText: { fontSize: 12, color: '#666' },
+    saludoSection: { marginBottom: 20 },
+    saludoText: { fontSize: 12, lineHeight: 1.5, textAlign: 'justify' },
+    mainSection: { marginBottom: 25, textAlign: 'center' },
+    eventTitle: { fontSize: 16, fontWeight: 'bold', color: '#800020', textTransform: 'uppercase' },
+    detailsSection: { marginBottom: 20 },
+    sectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#800020', marginBottom: 10, textTransform: 'uppercase' },
+    detailRow: { flexDirection: 'row', marginBottom: 8, alignItems: 'flex-start' },
+    detailLabel: { fontSize: 11, fontWeight: 'bold', width: 120, color: '#333' },
+    detailValue: { fontSize: 11, flex: 1, color: '#666' },
+    descriptionSection: { marginBottom: 20 },
+    descriptionText: { fontSize: 11, lineHeight: 1.4, textAlign: 'justify', color: '#666' },
+    instructionsSection: { marginBottom: 20 },
+    instructionText: { fontSize: 10, lineHeight: 1.3, marginBottom: 5, color: '#666' },
+    footer: { marginTop: 30, paddingTop: 20, borderTop: '1px solid #ddd', textAlign: 'center' },
+    footerText: { fontSize: 9, color: '#999', marginBottom: 5 }
   });
 
   const EventoPDF = ({ evento, logoUrl }) => {
@@ -299,13 +201,11 @@ const EventosAtleta = () => {
       month: 'long',
       day: 'numeric'
     });
-    
     const fechaEvento = evento.fecha ? new Date(evento.fecha).toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     }) : '';
-    
     const fechaCierre = evento.fechaCierre ? new Date(evento.fechaCierre).toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
@@ -315,7 +215,6 @@ const EventosAtleta = () => {
     return (
       <Document>
         <Page size="A4" style={pdfStyles.page}>
-          {/* Encabezado con logo y datos institucionales */}
           <View style={pdfStyles.header}>
             {logoUrl && <Image src={logoUrl} style={pdfStyles.logo} />}
             <View style={pdfStyles.headerText}>
@@ -324,102 +223,68 @@ const EventosAtleta = () => {
               <Text style={pdfStyles.documentTitle}>CONVOCATORIA OFICIAL</Text>
             </View>
           </View>
-
-          {/* Fecha del documento */}
           <View style={pdfStyles.dateSection}>
             <Text style={pdfStyles.dateText}>Veracruz, Ver. a {fechaActual}</Text>
           </View>
-
-          {/* Saludo y presentación */}
           <View style={pdfStyles.saludoSection}>
             <Text style={pdfStyles.saludoText}>
               El Instituto Veracruzano del Deporte, a través de la presente convocatoria, invita a todos los atletas interesados a participar en el siguiente evento deportivo:
             </Text>
           </View>
-
-          {/* Información principal del evento */}
           <View style={pdfStyles.mainSection}>
             <Text style={pdfStyles.eventTitle}>{evento.titulo}</Text>
           </View>
-
-          {/* Detalles del evento */}
           <View style={pdfStyles.detailsSection}>
             <Text style={pdfStyles.sectionTitle}>INFORMACIÓN DEL EVENTO:</Text>
-            
             <View style={pdfStyles.detailRow}>
               <Text style={pdfStyles.detailLabel}>• Disciplina:</Text>
               <Text style={pdfStyles.detailValue}>{evento.disciplina}</Text>
             </View>
-            
             <View style={pdfStyles.detailRow}>
               <Text style={pdfStyles.detailLabel}>• Categoría:</Text>
               <Text style={pdfStyles.detailValue}>{evento.categoria}</Text>
             </View>
-            
             <View style={pdfStyles.detailRow}>
               <Text style={pdfStyles.detailLabel}>• Género:</Text>
               <Text style={pdfStyles.detailValue}>{evento.genero === 'mixto' ? 'Mixto (Masculino y Femenino)' : evento.genero === 'masculino' ? 'Masculino' : 'Femenino'}</Text>
             </View>
-            
             <View style={pdfStyles.detailRow}>
               <Text style={pdfStyles.detailLabel}>• Rango de Edad:</Text>
               <Text style={pdfStyles.detailValue}>De {evento.edadMin} a {evento.edadMax} años</Text>
             </View>
-            
             <View style={pdfStyles.detailRow}>
               <Text style={pdfStyles.detailLabel}>• Lugar:</Text>
               <Text style={pdfStyles.detailValue}>{evento.lugar}</Text>
             </View>
-            
             <View style={pdfStyles.detailRow}>
               <Text style={pdfStyles.detailLabel}>• Fecha del Evento:</Text>
               <Text style={pdfStyles.detailValue}>{fechaEvento}</Text>
             </View>
-            
             <View style={pdfStyles.detailRow}>
               <Text style={pdfStyles.detailLabel}>• Hora:</Text>
               <Text style={pdfStyles.detailValue}>{evento.hora}</Text>
             </View>
-            
             <View style={pdfStyles.detailRow}>
               <Text style={pdfStyles.detailLabel}>• Fecha Límite de Inscripción:</Text>
               <Text style={pdfStyles.detailValue}>{fechaCierre}</Text>
             </View>
           </View>
-
-          {/* Descripción adicional */}
           {evento.descripcion && (
             <View style={pdfStyles.descriptionSection}>
               <Text style={pdfStyles.sectionTitle}>INFORMACIÓN ADICIONAL:</Text>
               <Text style={pdfStyles.descriptionText}>{evento.descripcion}</Text>
             </View>
           )}
-
-          {/* Instrucciones */}
           <View style={pdfStyles.instructionsSection}>
             <Text style={pdfStyles.sectionTitle}>INSTRUCCIONES:</Text>
-            <Text style={pdfStyles.instructionText}>
-              • Los interesados deberán registrarse a través de la plataforma oficial del Instituto Veracruzano del Deporte.
-            </Text>
-            <Text style={pdfStyles.instructionText}>
-              • Es obligatorio presentar la convocatoria oficial el día del evento.
-            </Text>
-            <Text style={pdfStyles.instructionText}>
-              • Se recomienda llegar con 30 minutos de anticipación.
-            </Text>
-            <Text style={pdfStyles.instructionText}>
-              • Para mayor información, consultar la página web oficial o contactar a la dirección de deportes.
-            </Text>
+            <Text style={pdfStyles.instructionText}>• Los interesados deberán registrarse a través de la plataforma oficial del Instituto Veracruzano del Deporte.</Text>
+            <Text style={pdfStyles.instructionText}>• Es obligatorio presentar la convocatoria oficial el día del evento.</Text>
+            <Text style={pdfStyles.instructionText}>• Se recomienda llegar con 30 minutos de anticipación.</Text>
+            <Text style={pdfStyles.instructionText}>• Para mayor información, consultar la página web oficial o contactar a la dirección de deportes.</Text>
           </View>
-
-          {/* Pie de página */}
           <View style={pdfStyles.footer}>
-            <Text style={pdfStyles.footerText}>
-              Esta convocatoria es oficial y ha sido emitida por el Instituto Veracruzano del Deporte.
-            </Text>
-            <Text style={pdfStyles.footerText}>
-              Documento generado el {fechaActual}
-            </Text>
+            <Text style={pdfStyles.footerText}>Esta convocatoria es oficial y ha sido emitida por el Instituto Veracruzano del Deporte.</Text>
+            <Text style={pdfStyles.footerText}>Documento generado el {fechaActual}</Text>
           </View>
         </Page>
       </Document>
@@ -519,17 +384,6 @@ const EventosAtleta = () => {
                       >
                         <PictureAsPdfIcon />
                       </IconButton>
-                      {!inscrito && !convocatoriaCerrada && (
-                        <IconButton
-                          color="success"
-                          onClick={() => handleInscribirse(evento)}
-                          disabled={inscribiendo}
-                          sx={{ '&:hover': { backgroundColor: 'rgba(128, 0, 32, 0.1)' } }}
-                          title="Inscribirse"
-                        >
-                          {inscribiendo ? <CircularProgress size={20} /> : <PersonAddIcon />}
-                        </IconButton>
-                      )}
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -546,20 +400,15 @@ const EventosAtleta = () => {
       )}
 
       {/* Modal de Detalles del Evento */}
-      <Dialog 
-        open={modalEventoOpen} 
-        onClose={handleCloseModalEvento} 
-        maxWidth="md" 
-        fullWidth
-      >
+      <Dialog open={modalEventoOpen} onClose={() => setModalEventoOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
           <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
             📋 Detalles del Evento
           </Typography>
         </DialogTitle>
         <DialogContent>
-          {eventoSeleccionado ? (
-            <Box sx={{ mt: 2 }}>
+          {eventoSeleccionado && (
+            <Box>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <Typography variant="h5" gutterBottom sx={{ color: '#800020' }}>
@@ -568,9 +417,9 @@ const EventosAtleta = () => {
                 </Grid>
                 
                 <Grid item xs={12} md={6}>
-                  <Card variant="outlined" sx={{ borderColor: '#800020' }}>
+                  <Card variant="outlined">
                     <CardContent>
-                      <Typography variant="h6" gutterBottom sx={{ color: '#800020' }}>📅 Información General</Typography>
+                      <Typography variant="h6" gutterBottom>📅 Información General</Typography>
                       <Typography variant="body2" paragraph>
                         <strong>Fecha:</strong> {formatearFecha(eventoSeleccionado.fecha || eventoSeleccionado.createdAt)}
                       </Typography>
@@ -583,8 +432,8 @@ const EventosAtleta = () => {
                       <Typography variant="body2" paragraph>
                         <strong>Estado:</strong> 
                         <Chip 
-                          label="Activo" 
-                          color="success"
+                          label={obtenerTextoEstado(eventoSeleccionado.estado)} 
+                          color={obtenerColorEstado(eventoSeleccionado.estado)}
                           size="small"
                           sx={{ ml: 1 }}
                         />
@@ -594,9 +443,9 @@ const EventosAtleta = () => {
                 </Grid>
                 
                 <Grid item xs={12} md={6}>
-                  <Card variant="outlined" sx={{ borderColor: '#800020' }}>
+                  <Card variant="outlined">
                     <CardContent>
-                      <Typography variant="h6" gutterBottom sx={{ color: '#800020' }}>🏃 Información Deportiva</Typography>
+                      <Typography variant="h6" gutterBottom>🏃 Información Deportiva</Typography>
                       <Typography variant="body2" paragraph>
                         <strong>Disciplina:</strong> {eventoSeleccionado.disciplina}
                       </Typography>
@@ -615,9 +464,9 @@ const EventosAtleta = () => {
                 
                 {eventoSeleccionado.descripcion && (
                   <Grid item xs={12}>
-                    <Card variant="outlined" sx={{ borderColor: '#800020' }}>
+                    <Card variant="outlined">
                       <CardContent>
-                        <Typography variant="h6" gutterBottom sx={{ color: '#800020' }}>📝 Descripción</Typography>
+                        <Typography variant="h6" gutterBottom>📝 Descripción</Typography>
                         <Typography variant="body2">
                           {eventoSeleccionado.descripcion}
                         </Typography>
@@ -627,9 +476,9 @@ const EventosAtleta = () => {
                 )}
                 
                 <Grid item xs={12}>
-                  <Card variant="outlined" sx={{ borderColor: '#800020' }}>
+                  <Card variant="outlined">
                     <CardContent>
-                      <Typography variant="h6" gutterBottom sx={{ color: '#800020' }}>📊 Información Técnica</Typography>
+                      <Typography variant="h6" gutterBottom>📊 Información Técnica</Typography>
                       <Typography variant="body2" paragraph>
                         <strong>ID del Evento:</strong> {eventoSeleccionado._id}
                       </Typography>
@@ -642,55 +491,12 @@ const EventosAtleta = () => {
                     </CardContent>
                   </Card>
                 </Grid>
-
-                {/* Botón de inscripción en el modal */}
-                <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                    {isInscrito(eventoSeleccionado._id) ? (
-                      <Chip 
-                        icon={<CheckCircleIcon />}
-                        label="Ya estás inscrito en este evento" 
-                        color="success" 
-                        size="large"
-                      />
-                    ) : isConvocatoriaCerrada(eventoSeleccionado) ? (
-                      <Chip 
-                        label="La convocatoria ya está cerrada" 
-                        color="error" 
-                        size="large"
-                      />
-                    ) : (
-                      <Button
-                        variant="contained"
-                        color="success"
-                        startIcon={<PersonAddIcon />}
-                        onClick={() => handleInscribirse(eventoSeleccionado)}
-                        disabled={inscribiendo}
-                        sx={{
-                          backgroundColor: '#800020',
-                          '&:hover': { backgroundColor: '#7A4069' },
-                          px: 4,
-                          py: 1.5
-                        }}
-                      >
-                        {inscribiendo ? 'Inscribiendo...' : 'Inscribirse al Evento'}
-                      </Button>
-                    )}
-                  </Box>
-                </Grid>
               </Grid>
-            </Box>
-          ) : (
-            <Box sx={{ textAlign: 'center', p: 2 }}>
-              <CircularProgress />
-              <Typography variant="body2" sx={{ mt: 2 }}>
-                Cargando detalles...
-              </Typography>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseModalEvento} color="primary">
+          <Button onClick={() => setModalEventoOpen(false)} color="primary">
             Cerrar
           </Button>
         </DialogActions>
@@ -778,5 +584,9 @@ const EventosAtleta = () => {
     </Container>
   );
 };
+
+// Funciones auxiliares
+const obtenerTextoEstado = (estado) => (estado === true ? 'Activo' : 'Inactivo');
+const obtenerColorEstado = (estado) => (estado === true ? 'success' : 'error');
 
 export default EventosAtleta;

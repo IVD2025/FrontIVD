@@ -22,9 +22,11 @@ const Mision = () => {
     try {
       const response = await axios.get('http://localhost:5000/api/mision');
       const formattedMisiones = response.data.map(m => ({
-        ...m,
-        createdAt: new Date(m.createdAt),
-        updatedAt: m.updatedAt ? new Date(m.updatedAt) : null,
+        _id: m._id,
+        titulo: m.titulo || '',
+        contenido: m.contenido || '',
+        createdAt: m.createdAt ? new Date(m.createdAt) : new Date(),
+        updatedAt: m.updatedAt ? new Date(m.updatedAt) : null
       }));
       setMisiones(formattedMisiones);
     } catch (err) {
@@ -63,8 +65,7 @@ const Mision = () => {
 
       if (editingId) {
         response = await axios.put(`http://localhost:5000/api/mision/${editingId}`, payload);
-        if (response.status === 200) {
-          const { mision: updatedMision } = response.data;
+        if (response.status === 200 || response.status === 201) {
           MySwal.fire({
             title: '¡Éxito!',
             text: 'Misión actualizada correctamente.',
@@ -72,16 +73,17 @@ const Mision = () => {
             confirmButtonText: 'Aceptar',
             confirmButtonColor: '#7A4069',
           });
-          setMisiones(misiones.map(m => m._id.toString() === editingId ? { ...updatedMision, createdAt: new Date(updatedMision.createdAt), updatedAt: new Date(updatedMision.updatedAt) } : m));
-        } else if (response.status === 404) {
-          MySwal.fire({
-            title: 'Exito!',
-            text: 'Misión actualizada correctamente.',
-            icon: 'success',
-            confirmButtonText: 'Aceptar',
-            confirmButtonColor: '#800020',
-          });
-          await fetchMisiones(); // Recargar para reflejar el estado actual
+          // Actualizar la misión en el estado local con verificación de datos
+          const misionActualizada = {
+            _id: response.data._id,
+            titulo: response.data.titulo || '',
+            contenido: response.data.contenido || '',
+            createdAt: response.data.createdAt ? new Date(response.data.createdAt) : new Date(),
+            updatedAt: response.data.updatedAt ? new Date(response.data.updatedAt) : new Date()
+          };
+          setMisiones(misiones.map(m => m._id.toString() === editingId ? misionActualizada : m));
+        } else {
+          throw new Error(response.data?.message || 'Error desconocido');
         }
       } else {
         response = await axios.post('http://localhost:5000/api/mision', payload);
@@ -92,16 +94,24 @@ const Mision = () => {
           confirmButtonText: 'Aceptar',
           confirmButtonColor: '#7A4069',
         });
-        setMisiones([...misiones, { ...response.data, createdAt: new Date(response.data.createdAt), updatedAt: new Date(response.data.updatedAt) }]);
+        // Como solo puede haber una misión, reemplazar completamente el array
+        const nuevaMision = {
+          _id: response.data._id,
+          titulo: response.data.titulo || '',
+          contenido: response.data.contenido || '',
+          createdAt: response.data.createdAt ? new Date(response.data.createdAt) : new Date(),
+          updatedAt: response.data.updatedAt ? new Date(response.data.updatedAt) : new Date()
+        };
+        setMisiones([nuevaMision]);
       }
       setMision({ titulo: '', contenido: '' });
       setEditingId(null);
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'No se pudo guardar la misión. Intenta de nuevo.';
       MySwal.fire({
-        title: 'Exito!',
+        title: '¡Error!',
         text: errorMessage,
-        icon: 'success',
+        icon: 'error',
         confirmButtonText: 'Aceptar',
         confirmButtonColor: '#800020',
       });
@@ -114,7 +124,7 @@ const Mision = () => {
   const handleDelete = async (id) => {
     const result = await MySwal.fire({
       title: '¿Estás seguro?',
-      text: 'Esta acción no se puede deshacer.',
+      text: 'Esta acción eliminará la misión actual y no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#800020',
@@ -127,31 +137,21 @@ const Mision = () => {
       setLoading(true);
       try {
         const response = await axios.delete(`http://localhost:5000/api/mision/${id}`);
-        if (response.status === 200) {
-          setMisiones(misiones.filter(m => m._id.toString() !== id));
-          MySwal.fire({
-            title: '¡Éxito!',
-            text: 'Misión eliminada correctamente.',
-            icon: 'success',
-            confirmButtonText: 'Aceptar',
-            confirmButtonColor: '#7A4069',
-          });
-        } else if (response.status === 404) {
-          MySwal.fire({
-            title: 'Exito!',
-            text: 'Misión eliminada correctamente.',
-            icon: 'success',
-            confirmButtonText: 'Aceptar',
-            confirmButtonColor: '#800020',
-          });
-          await fetchMisiones(); // Recargar para reflejar el estado actual
-        }
+        // Limpiar completamente el array de misiones
+        setMisiones([]);
+        MySwal.fire({
+          title: '¡Éxito!',
+          text: 'Misión eliminada correctamente.',
+          icon: 'success',
+          confirmButtonText: 'Aceptar',
+          confirmButtonColor: '#7A4069',
+        });
       } catch (err) {
         const errorMessage = err.response?.data?.message || 'No se pudo eliminar la misión.';
         MySwal.fire({
-          title: 'Exito!',
+          title: '¡Error!',
           text: errorMessage,
-          icon: 'succes',
+          icon: 'error',
           confirmButtonText: 'Aceptar',
           confirmButtonColor: '#800020',
         });
@@ -175,6 +175,13 @@ const Mision = () => {
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>Gestión de Misión</h1>
+      <div style={styles.infoBox}>
+        <p style={styles.infoText}>
+          <strong>Nota:</strong> Solo puede existir una misión activa en el sistema. 
+          Al crear una nueva misión, se eliminará automáticamente la anterior. 
+          Esta misión se mostrará en la sección correspondiente del sitio.
+        </p>
+      </div>
       {loading && <p style={styles.loading}>Cargando...</p>}
       {error && <p style={styles.error}>{error}</p>}
       <div style={styles.flexContainer}>
@@ -224,8 +231,8 @@ const Mision = () => {
         </section>
 
         <section style={styles.misionesGuardadasContainer}>
-          <h2 style={styles.subtitle}>Misiones Guardadas</h2>
-          {misiones.length === 0 && !loading && <p>No hay misiones guardadas.</p>}
+          <h2 style={styles.subtitle}>Misión Actual</h2>
+          {misiones.length === 0 && !loading && <p>No hay misiones guardadas. Crea la primera misión del sistema.</p>}
           {misiones.length > 0 && (
             <table style={styles.table}>
               <thead>
@@ -243,9 +250,9 @@ const Mision = () => {
                     <td style={styles.td}>{mision.titulo}</td>
                     <td style={styles.td}>
                       <ul style={styles.contentList}>
-                        {mision.contenido.split('\n').map((item, index) => (
+                        {mision.contenido ? mision.contenido.split('\n').map((item, index) => (
                           item.trim() && <li key={index} style={styles.contentItem}>{item.trim()}</li>
-                        ))}
+                        )) : <li style={styles.contentItem}>Sin contenido</li>}
                       </ul>
                     </td>
                     <td style={styles.td}>{mision.createdAt.toLocaleString()}</td>
@@ -442,6 +449,19 @@ const styles = {
     textAlign: 'center',
     color: '#D32F2F',
     fontSize: '18px',
+  },
+  infoBox: {
+    background: '#E3F2FD',
+    border: '2px solid #2196F3',
+    borderRadius: '8px',
+    padding: '15px',
+    marginBottom: '20px',
+  },
+  infoText: {
+    margin: '0',
+    color: '#1976D2',
+    fontSize: '14px',
+    lineHeight: '1.5',
   },
 };
 

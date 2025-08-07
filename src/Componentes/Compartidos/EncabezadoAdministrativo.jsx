@@ -66,11 +66,17 @@ const EncabezadoAdministrativo = () => {
       case 'vision':
         navigate('/administrador/vision');
         break;
+      case 'gestionarAtletas':
+        navigate('/administrador/gestionar-atletas');
+        break;
       case 'altaAtleta':
         navigate('/administrador/atleta');
         break;
       case 'altaClub':
         navigate('/administrador/club');
+        break;
+      case 'gestionClubes':
+        navigate('/administrador/gestion-clubes');
         break;
       case 'Eventos':
         navigate('/administrador/evento');
@@ -334,12 +340,12 @@ const EncabezadoAdministrativo = () => {
             <li className="dropdown" onClick={() => toggleDropdown('alta')}>
               <span>
                 <ShopOutlined style={{ color: '#FFFFFF', marginRight: '8px' }} />
-                Agregar Atleta/Club
+                Gestión de Usuarios
               </span>
               {openDropdown === 'alta' && (
                 <ul className="dropdown-menu">
-                  <li onClick={() => { handleClick('altaAtleta'); handleMenuClick('altaAtleta'); }}>Agregar Atleta</li>
-                  <li onClick={() => { handleClick('altaClub'); handleMenuClick('altaClub'); }}>Agregar Club</li>
+                  <li onClick={() => { handleClick('gestionarAtletas'); handleMenuClick('gestionarAtletas'); }}>Gestionar Atletas</li>
+                  <li onClick={() => { handleClick('gestionClubes'); handleMenuClick('gestionClubes'); }}>Gestionar Clubes</li>
                 </ul>
               )}
             </li>

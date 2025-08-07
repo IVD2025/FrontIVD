@@ -28,6 +28,7 @@ import PaginaPrincipalClub from "./Paginas/PaginaPrincipalClub";
 import AcercarDe from "./Componentes/Compartidos/AcercaDe";
 import EventosAtleta from "./Componentes/Atleta/EventosAtleta";
 import ConvocatoriaAtleta from "./Componentes/Atleta/ConvocatoriaAtleta";
+//IMPORTACION DE COMPONENTES DEL ROL DE ATLETA
 import PerfilAtleta from "./Componentes/Atleta/PerfilAtleta";
 import ResultadosAtleta from "./Componentes/Atleta/ResultadosAtleta";
 import EstadisticasAtleta from "./Componentes/Atleta/EstadisticasAtleta";
@@ -40,6 +41,8 @@ import PieDePagina from "./Componentes/Compartidos/PieDePagina";
 import GestionResultados from "./Componentes/Administrativo/GestionResultados";
 import Reportes from "./Componentes/Administrativo/Reportes";
 import ValidacionCategoriaAutomatica from "./Componentes/Administrativo/ValidacionCategoriaAutomatica";
+import GestionClubes from "./Componentes/Administrativo/GestionClubes";
+import GestionarAtletas from "./Componentes/Administrativo/GestionarAtletas";
 
 import RecuperarCorreo from "./Componentes/Autenticacion/RecuperarCorreo";
 import VerificarCodigo from "./Componentes/Autenticacion/VerificarCodigo";
@@ -79,6 +82,8 @@ const App = () => {
             <Route path="/administrador/resultados" element={<GestionResultados />} />
             <Route path="/administrador/reportes" element={<Reportes />} />
             <Route path="/administrador/validacion-categoria" element={<ValidacionCategoriaAutomatica />} />
+            <Route path="/administrador/gestion-clubes" element={<GestionClubes />} />
+            <Route path="/administrador/gestionar-atletas" element={<GestionarAtletas />} />
             <Route path="/administrador/politicas" element={<Politicas />} />
             <Route path="/administrador/terminos" element={<Terminos />} />
             <Route path="/administrador/vision" element={<Vision />} />

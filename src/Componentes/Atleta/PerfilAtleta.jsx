@@ -77,6 +77,20 @@ const PerfilAtleta = () => {
       // Solo mostrar la última pendiente
       const pendientes = response.data.filter(s => s.estado === 'pendiente');
       setSolicitud(pendientes.length > 0 ? pendientes[0] : null);
+      
+      // Verificar si hay solicitudes rechazadas recientes
+      const rechazadas = response.data.filter(s => s.estado === 'rechazada');
+      if (rechazadas.length > 0) {
+        const ultimaRechazada = rechazadas[rechazadas.length - 1];
+        const fechaRechazo = new Date(ultimaRechazada.fechaSolicitud);
+        const fechaActual = new Date();
+        const diferenciaDias = (fechaActual - fechaRechazo) / (1000 * 60 * 60 * 24);
+        
+        // Si la solicitud fue rechazada en los últimos 7 días, mostrar mensaje
+        if (diferenciaDias <= 7) {
+          setErrorMessage('Tu solicitud anterior fue rechazada. Puedes enviar una nueva solicitud a cualquier club.');
+        }
+      }
     } catch {
       setSolicitud(null);
     }
@@ -150,6 +164,29 @@ const PerfilAtleta = () => {
     }
   };
 
+  const handleSalirClub = async () => {
+    try {
+      if (!user?.id) return;
+      
+      // Salir automáticamente del club actual
+      await axios.put(`http://localhost:5000/api/registros/atleta/${user.id}`, {
+        clubId: null
+      });
+      
+      setErrorMessage('Has salido del club exitosamente. Ahora puedes unirte a otro club o permanecer independiente.');
+      
+      // Actualizar el perfil
+      fetchPerfil();
+      fetchSolicitud();
+    } catch (error) {
+      setErrorMessage('Error al salir del club. Intente de nuevo.');
+    }
+  };
+
+  const limpiarMensaje = () => {
+    setErrorMessage('');
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -173,7 +210,15 @@ const PerfilAtleta = () => {
 
       {errorMessage && (
         <Box sx={{ mb: 2 }}>
-          <Alert severity={errorMessage.includes('exitosamente') || errorMessage.includes('enviada') ? 'success' : 'error'} onClose={() => setErrorMessage('')}>
+          <Alert 
+            severity={errorMessage.includes('exitosamente') || errorMessage.includes('enviada') ? 'success' : 'error'} 
+            onClose={limpiarMensaje}
+            action={
+              <Button color="inherit" size="small" onClick={limpiarMensaje}>
+                Entendido
+              </Button>
+            }
+          >
             {errorMessage}
           </Alert>
         </Box>
@@ -279,31 +324,19 @@ const PerfilAtleta = () => {
 
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold', mb: 2 }}>
-            Solicitud de Cambio de Club / Independiente
+            Gestión de Club
           </Typography>
           {perfil && perfil.clubId ? (
             <Box>
-              <Alert severity="info">Actualmente perteneces a un club. Si deseas dejar el club, haz clic en el botón.</Alert>
+              <Alert severity="info">
+                Actualmente perteneces al club: <strong>{clubes.find(c => c._id === perfil.clubId)?.nombre || 'Club desconocido'}</strong>
+              </Alert>
               <Button
                 variant="contained"
-                onClick={async () => {
-                  try {
-                    if (!user?.id) return;
-                    await axios.post('http://localhost:5000/api/registros/solicitudes-club', {
-                      atletaId: user.id,
-                      tipo: 'independiente',
-                    });
-                    setErrorMessage('Solicitud para dejar el club enviada. Espera la respuesta.');
-                    fetchSolicitud();
-                    fetchPerfil();
-                  } catch (error) {
-                    setErrorMessage(error.response?.data?.error || 'Error al enviar solicitud');
-                  }
-                }}
-                sx={{ background: '#800020', fontWeight: 'bold', mt: 2 }}
-                disabled={!!solicitud && solicitud.estado === 'pendiente'}
+                onClick={handleSalirClub}
+                sx={{ background: '#D32F2F', fontWeight: 'bold', mt: 2 }}
               >
-                Solicitar ser Independiente
+                Salir del Club
               </Button>
             </Box>
           ) : (solicitud && solicitud.estado === 'pendiente') ? (
@@ -328,12 +361,14 @@ const PerfilAtleta = () => {
                 onClick={async () => {
                   try {
                     if (!user?.id) return;
+                    limpiarMensaje(); // Limpiar mensajes anteriores
                     await axios.post('http://localhost:5000/api/registros/solicitudes-club', {
                       atletaId: user.id,
                       clubId: clubSeleccionado,
                       tipo: 'asociar',
                     });
                     setErrorMessage('Solicitud enviada correctamente. Espera la respuesta del club.');
+                    setClubSeleccionado('');
                     fetchSolicitud();
                   } catch (error) {
                     setErrorMessage(error.response?.data?.error || 'Error al enviar solicitud');

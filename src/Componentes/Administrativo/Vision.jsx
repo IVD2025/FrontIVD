@@ -22,9 +22,11 @@ const Vision = () => {
     try {
       const response = await axios.get('http://localhost:5000/api/vision');
       const formattedVisiones = response.data.map(v => ({
-        ...v,
-        createdAt: new Date(v.createdAt),
-        updatedAt: v.updatedAt ? new Date(v.updatedAt) : null,
+        _id: v._id,
+        titulo: v.titulo || '',
+        contenido: v.contenido || '',
+        createdAt: v.createdAt ? new Date(v.createdAt) : new Date(),
+        updatedAt: v.updatedAt ? new Date(v.updatedAt) : null
       }));
       setVisiones(formattedVisiones);
     } catch (err) {
@@ -63,7 +65,7 @@ const Vision = () => {
 
       if (editingId) {
         response = await axios.put(`http://localhost:5000/api/vision/${editingId}`, payload);
-        if (response.status === 200) {
+        if (response.status === 200 || response.status === 201) {
           MySwal.fire({
             title: '¡Éxito!',
             text: 'Visión actualizada correctamente.',
@@ -71,7 +73,15 @@ const Vision = () => {
             confirmButtonText: 'Aceptar',
             confirmButtonColor: '#7A4069',
           });
-          setVisiones(visiones.map(v => v._id.toString() === editingId ? { ...response.data, createdAt: new Date(response.data.createdAt), updatedAt: new Date(response.data.updatedAt) } : v));
+          // Actualizar la visión en el estado local con verificación de datos
+          const visionActualizada = {
+            _id: response.data._id,
+            titulo: response.data.titulo || '',
+            contenido: response.data.contenido || '',
+            createdAt: response.data.createdAt ? new Date(response.data.createdAt) : new Date(),
+            updatedAt: response.data.updatedAt ? new Date(response.data.updatedAt) : new Date()
+          };
+          setVisiones(visiones.map(v => v._id.toString() === editingId ? visionActualizada : v));
         } else {
           throw new Error(response.data?.message || 'Error desconocido');
         }
@@ -84,7 +94,15 @@ const Vision = () => {
           confirmButtonText: 'Aceptar',
           confirmButtonColor: '#7A4069',
         });
-        setVisiones([...visiones, { ...response.data, createdAt: new Date(response.data.createdAt), updatedAt: new Date(response.data.updatedAt) }]);
+        // Como solo puede haber una visión, reemplazar completamente el array
+        const nuevaVision = {
+          _id: response.data._id,
+          titulo: response.data.titulo || '',
+          contenido: response.data.contenido || '',
+          createdAt: response.data.createdAt ? new Date(response.data.createdAt) : new Date(),
+          updatedAt: response.data.updatedAt ? new Date(response.data.updatedAt) : new Date()
+        };
+        setVisiones([nuevaVision]);
       }
       setVision({ titulo: '', contenido: '' });
       setEditingId(null);
@@ -106,7 +124,7 @@ const Vision = () => {
   const handleDelete = async (id) => {
     const result = await MySwal.fire({
       title: '¿Estás seguro?',
-      text: 'Esta acción no se puede deshacer.',
+      text: 'Esta acción eliminará la visión actual y no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#800020',
@@ -119,18 +137,15 @@ const Vision = () => {
       setLoading(true);
       try {
         const response = await axios.delete(`http://localhost:5000/api/vision/${id}`);
-        if (response.status === 200) {
-          setVisiones(visiones.filter(v => v._id.toString() !== id));
-          MySwal.fire({
-            title: '¡Éxito!',
-            text: 'Visión eliminada correctamente.',
-            icon: 'success',
-            confirmButtonText: 'Aceptar',
-            confirmButtonColor: '#7A4069',
-          });
-        } else {
-          throw new Error(response.data?.message || 'Error desconocido');
-        }
+        // Limpiar completamente el array de visiones
+        setVisiones([]);
+        MySwal.fire({
+          title: '¡Éxito!',
+          text: 'Visión eliminada correctamente.',
+          icon: 'success',
+          confirmButtonText: 'Aceptar',
+          confirmButtonColor: '#7A4069',
+        });
       } catch (err) {
         const errorMessage = err.response?.data?.message || 'No se pudo eliminar la visión.';
         MySwal.fire({
@@ -160,6 +175,13 @@ const Vision = () => {
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>Gestión de Visión</h1>
+      <div style={styles.infoBox}>
+        <p style={styles.infoText}>
+          <strong>Nota:</strong> Solo puede existir una visión activa en el sistema. 
+          Al crear una nueva visión, se eliminará automáticamente la anterior. 
+          Esta visión se mostrará en la sección correspondiente del sitio.
+        </p>
+      </div>
       {loading && <p style={styles.loading}>Cargando...</p>}
       {error && <p style={styles.error}>{error}</p>}
       <div style={styles.flexContainer}>
@@ -209,8 +231,8 @@ const Vision = () => {
         </section>
 
         <section style={styles.terminosGuardadosContainer}>
-          <h2 style={styles.subtitle}>Visiones Guardadas</h2>
-          {visiones.length === 0 && !loading && <p>No hay visiones guardadas.</p>}
+          <h2 style={styles.subtitle}>Visión Actual</h2>
+          {visiones.length === 0 && !loading && <p>No hay visiones guardadas. Crea la primera visión del sistema.</p>}
           {visiones.length > 0 && (
             <table style={styles.table}>
               <thead>
@@ -228,9 +250,9 @@ const Vision = () => {
                     <td style={styles.td}>{vision.titulo}</td>
                     <td style={styles.td}>
                       <ul style={styles.contentList}>
-                        {vision.contenido.split('\n').map((item, index) => (
+                        {vision.contenido ? vision.contenido.split('\n').map((item, index) => (
                           item.trim() && <li key={index} style={styles.contentItem}>{item.trim()}</li>
-                        ))}
+                        )) : <li style={styles.contentItem}>Sin contenido</li>}
                       </ul>
                     </td>
                     <td style={styles.td}>{vision.createdAt.toLocaleString()}</td>
@@ -427,6 +449,19 @@ const styles = {
     textAlign: 'center',
     color: '#D32F2F',
     fontSize: '18px',
+  },
+  infoBox: {
+    background: '#E3F2FD',
+    border: '2px solid #2196F3',
+    borderRadius: '8px',
+    padding: '15px',
+    marginBottom: '20px',
+  },
+  infoText: {
+    margin: '0',
+    color: '#1976D2',
+    fontSize: '14px',
+    lineHeight: '1.5',
   },
 };
 

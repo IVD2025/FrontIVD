@@ -55,9 +55,11 @@ function TerminosPCA() {
     const fetchTerminos = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/terminos`);
-        // Si el backend devuelve un solo objeto, lo convertimos en array para consistencia
+        // Solo mostrar el término más reciente (el primero del array ordenado por fecha)
         const terminosData = Array.isArray(response.data) ? response.data : [response.data];
-        setTerminos(terminosData);
+        // Tomar solo el primer término (el más reciente)
+        const terminoActual = terminosData.length > 0 ? [terminosData[0]] : [];
+        setTerminos(terminoActual);
         setLoading(false);
       } catch (err) {
         console.error("Error al obtener los términos:", err);

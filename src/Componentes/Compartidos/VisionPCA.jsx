@@ -55,8 +55,12 @@ function VisionPCA() {
     const fetchVisiones = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/vision`);
+        // Solo mostrar la visión más reciente (la primera del array ordenado por fecha)
+        const visionesData = Array.isArray(response.data) ? response.data : [response.data];
+        // Tomar solo la primera visión (la más reciente)
+        const visionActual = visionesData.length > 0 ? [visionesData[0]] : [];
         // Formatear las fechas para consistencia
-        const formattedVisiones = response.data.map((v) => ({
+        const formattedVisiones = visionActual.map((v) => ({
           ...v,
           createdAt: new Date(v.createdAt).toLocaleDateString(),
           updatedAt: v.updatedAt ? new Date(v.updatedAt).toLocaleDateString() : null,

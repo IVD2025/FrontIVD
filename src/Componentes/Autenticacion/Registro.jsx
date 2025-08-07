@@ -133,7 +133,7 @@ function Registro() {
     gmail: "",
     password: "",
     repetirPassword: "",
-    sexo: "Hombre",
+    sexo: "masculino",
     estadoNacimiento: "Aguascalientes",
     curp: "",
     clubId: "",
@@ -258,6 +258,8 @@ function Registro() {
       }
     }
 
+
+
     setFormErrors(errors);
   };
 
@@ -348,12 +350,14 @@ function Registro() {
       // Solo enviar los datos relevantes para club
       dataToSend = {
         nombre: formData.nombre,
-        apellidopa: formData.apellidopa || "",
-        apellidoma: formData.apellidoma || "",
+        direccion: `${formData.apellidopa || ""} ${formData.apellidoma || ""}`.trim() || "Sin dirección",
         telefono: formData.telefono || "0000000000",
-        gmail: formData.gmail,
+        email: formData.gmail,
         password: formData.password,
         rol: formData.rol,
+        entrenador: "",
+        descripcion: "",
+        estado: "activo"
       };
       endpoint = `${API_BASE_URL}/api/clubes`;
     } else {
@@ -469,7 +473,7 @@ function Registro() {
           </Typography>
           <form onSubmit={handleSubmit}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="Nombre"
@@ -488,6 +492,25 @@ function Registro() {
                     ),
                   }}
                 />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth required error={!!formErrors.rol}>
+                  <InputLabel>Rol</InputLabel>
+                  <Select
+                    name="rol"
+                    value={formData.rol}
+                    onChange={handleChange}
+                    label="Rol"
+                  >
+                    <MenuItem value="atleta">Atleta</MenuItem>
+                    <MenuItem value="club">Club</MenuItem>
+                  </Select>
+                  {formErrors.rol && (
+                    <Typography color="error" variant="caption">
+                      {formErrors.rol}
+                    </Typography>
+                  )}
+                </FormControl>
               </Grid>
               <Grid item xs={12} sm={4}>
                 <TextField
@@ -534,40 +557,6 @@ function Registro() {
               <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
-                  label="Fecha de Nacimiento"
-                  name="fechaNacimiento"
-                  type="date"
-                  value={formData.fechaNacimiento}
-                  onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
-                  required
-                  error={!!formErrors.fechaNacimiento}
-                  helperText={formErrors.fechaNacimiento || " "}
-                  disabled={formData.rol === "club"}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth required error={!!formErrors.rol}>
-                  <InputLabel>Rol</InputLabel>
-                  <Select
-                    name="rol"
-                    value={formData.rol}
-                    onChange={handleChange}
-                    label="Rol"
-                  >
-                    <MenuItem value="atleta">Atleta</MenuItem>
-                    <MenuItem value="club">Club</MenuItem>
-                  </Select>
-                  {formErrors.rol && (
-                    <Typography color="error" variant="caption">
-                      {formErrors.rol}
-                    </Typography>
-                  )}
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
                   label="Teléfono"
                   name="telefono"
                   value={formData.telefono}
@@ -587,19 +576,36 @@ function Registro() {
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <FormControl fullWidth required>
-                  <InputLabel>Sexo</InputLabel>
-                  <Select
-                    name="sexo"
-                    value={formData.sexo}
-                    onChange={handleChange}
-                    label="Sexo"
-                  >
-                    <MenuItem value="masculino">Masculino</MenuItem>
-                    <MenuItem value="femenino">Femenino</MenuItem>
-                  </Select>
-                </FormControl>
+                <TextField
+                  fullWidth
+                  label="Fecha de Nacimiento"
+                  name="fechaNacimiento"
+                  type="date"
+                  value={formData.fechaNacimiento}
+                  onChange={handleChange}
+                  InputLabelProps={{ shrink: true }}
+                  required
+                  error={!!formErrors.fechaNacimiento}
+                  helperText={formErrors.fechaNacimiento || " "}
+                  disabled={formData.rol === "club"}
+                />
               </Grid>
+              {formData.rol !== "club" && (
+                <Grid item xs={12} sm={4}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Sexo</InputLabel>
+                    <Select
+                      name="sexo"
+                      value={formData.sexo}
+                      onChange={handleChange}
+                      label="Sexo"
+                    >
+                      <MenuItem value="masculino">Masculino</MenuItem>
+                      <MenuItem value="femenino">Femenino</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
               <Grid item xs={12} sm={4}>
                 <FormControl fullWidth required>
                   <InputLabel>Estado de Nacimiento</InputLabel>

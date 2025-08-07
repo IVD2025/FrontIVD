@@ -55,8 +55,12 @@ function PoliticasPCA() {
     const fetchPoliticas = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/politicas`);
+        // Solo mostrar la política más reciente (la primera del array ordenado por fecha)
+        const politicasData = Array.isArray(response.data) ? response.data : [response.data];
+        // Tomar solo la primera política (la más reciente)
+        const politicaActual = politicasData.length > 0 ? [politicasData[0]] : [];
         // Formatear las fechas para consistencia
-        const formattedPoliticas = response.data.map((p) => ({
+        const formattedPoliticas = politicaActual.map((p) => ({
           ...p,
           createdAt: new Date(p.createdAt).toLocaleDateString(),
           updatedAt: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : null,

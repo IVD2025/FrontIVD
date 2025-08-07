@@ -1,42 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import MenuItem from '@mui/material/MenuItem';
 import {
   Box,
-  Button,
   Container,
+  Typography,
+  Paper,
+  Grid,
+  Card,
+  CardContent,
+  Button,
+  IconButton,
+  Alert,
+  Chip,
+  Avatar,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
-  Paper,
-  Modal,
-  TextField,
-  Typography,
-  IconButton,
-  CircularProgress,
-  Alert,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
+  TableContainer
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Check as CheckIcon, Close as CloseIcon } from '@mui/icons-material';
+import {
+  People as PeopleIcon,
+  PersonAdd as PersonAddIcon,
+  Check as CheckIcon,
+  Close as CloseIcon,
+  Group as GroupIcon,
+  PersonRemove as PersonRemoveIcon,
+  Warning as WarningIcon
+} from '@mui/icons-material';
 import axios from 'axios';
-import { useAuth } from '../Autenticacion/AuthContext'; // Ajusta la ruta
+import { useAuth } from '../Autenticacion/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const GestionAtletas = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [atletas, setAtletas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
   const [error, setError] = useState('');
-  const [openModal, setOpenModal] = useState(false);
-  const [formData, setFormData] = useState({ nombre: '', edad: '', contacto: '', estado: 'activo' });
-  const [editIndex, setEditIndex] = useState(null);
+  const [atletas, setAtletas] = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
-  const [atletasSolicitudes, setAtletasSolicitudes] = useState([]);
+  const [modalExpulsionOpen, setModalExpulsionOpen] = useState(false);
+  const [atletaAExpulsar, setAtletaAExpulsar] = useState(null);
 
   useEffect(() => {
     if (!user?.id) {
@@ -50,8 +64,7 @@ const GestionAtletas = () => {
   const fetchAtletas = async () => {
     try {
       setLoading(true);
-      // Usar el endpoint del backend que filtra por clubId
-      const response = await axios.get(`http://localhost:5000/api/registros/atletas?clubId=${user.id}`);
+      const response = await axios.get(`http://localhost:5000/api/registros/atletas-club?clubId=${user.id}`);
       setAtletas(response.data);
       setError('');
     } catch (error) {
@@ -64,267 +77,350 @@ const GestionAtletas = () => {
 
   const fetchSolicitudes = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/registros/solicitudes-club?clubId=${user.id}`);
-      const pendientes = res.data.filter(s => s.estado === 'pendiente');
-      setSolicitudes(pendientes);
-      // Obtener datos de los atletas para mostrar nombre
-      const atletaIds = pendientes.map(s => s.atletaId);
-      if (atletaIds.length > 0) {
-        const atletasRes = await axios.get('http://localhost:5000/api/registros/atletas');
-        setAtletasSolicitudes(atletasRes.data.filter(a => atletaIds.includes(a._id)));
-      } else {
-        setAtletasSolicitudes([]);
-      }
-    } catch {
+      setLoadingSolicitudes(true);
+      const response = await axios.get(`http://localhost:5000/api/registros/solicitudes-club?clubId=${user.id}`);
+      const solicitudesPendientes = response.data.filter(s => s.estado === 'pendiente');
+      setSolicitudes(solicitudesPendientes);
+    } catch (error) {
+      console.error('Error al cargar solicitudes:', error);
       setSolicitudes([]);
-      setAtletasSolicitudes([]);
+    } finally {
+      setLoadingSolicitudes(false);
     }
   };
 
-  const handleSolicitud = async (solicitudId, estado) => {
+  const handleAceptarSolicitud = async (solicitudId) => {
     try {
-      await axios.put(`http://localhost:5000/api/registros/solicitudes-club/${solicitudId}`, { estado });
-      setError('Solicitud procesada correctamente.');
+      await axios.put(`http://localhost:5000/api/registros/solicitudes-club/${solicitudId}`, { estado: 'aceptada' });
+      setError('');
       fetchSolicitudes();
       fetchAtletas();
-    } catch {
+    } catch (error) {
+      console.error('Error al aceptar solicitud:', error);
       setError('Error al procesar la solicitud. Intente de nuevo.');
     }
   };
 
-  const handleAddOrEdit = async () => {
+  const handleRechazarSolicitud = async (solicitudId) => {
     try {
-      const url = editIndex !== null
-        ? `https://backendd-q0zc.onrender.com/api/atletas/${atletas[editIndex]._id}`
-        : `https://backendd-q0zc.onrender.com/api/atletas`;
-      const method = editIndex !== null ? 'put' : 'post';
-      await axios({
-        method,
-        url,
-        data: { ...formData, clubId: user.id },
-        headers: { 'Content-Type': 'application/json' },
+      await axios.put(`http://localhost:5000/api/registros/solicitudes-club/${solicitudId}`, { estado: 'rechazada' });
+      setError('');
+      fetchSolicitudes();
+    } catch (error) {
+      console.error('Error al rechazar solicitud:', error);
+      setError('Error al procesar la solicitud. Intente de nuevo.');
+    }
+  };
+
+  const handleVerSolicitud = (solicitud) => {
+    // Aquí puedes implementar un modal para ver más detalles de la solicitud
+    console.log('Ver solicitud:', solicitud);
+  };
+
+  const handleExpulsarAtleta = (atleta) => {
+    setAtletaAExpulsar(atleta);
+    setModalExpulsionOpen(true);
+  };
+
+  const confirmarExpulsion = async () => {
+    try {
+      // Desasociar atleta del club (quitar clubId)
+      await axios.put(`http://localhost:5000/api/registros/${atletaAExpulsar._id}`, {
+        clubId: null
       });
-      setOpenModal(false);
-      setFormData({ nombre: '', edad: '', contacto: '', estado: 'activo' });
-      setEditIndex(null);
+      
+      setError('');
+      setModalExpulsionOpen(false);
+      setAtletaAExpulsar(null);
       fetchAtletas();
     } catch (error) {
-      console.error('Error al guardar atleta:', error);
-      setError('Error al guardar el atleta. Intente de nuevo.');
+      console.error('Error al expulsar atleta:', error);
+      setError('Error al expulsar al atleta. Intente de nuevo.');
     }
   };
 
-  const handleDelete = async (index) => {
+  const cancelarExpulsion = () => {
+    setModalExpulsionOpen(false);
+    setAtletaAExpulsar(null);
+  };
+
+  const calcularEdad = (fechaNacimiento) => {
+    if (!fechaNacimiento) return 'N/A';
+    const fechaActual = new Date();
+    const fechaNac = new Date(fechaNacimiento);
+    const edad = fechaActual.getFullYear() - fechaNac.getFullYear();
+    const mes = fechaActual.getMonth() - fechaNac.getMonth();
+    return mes < 0 || (mes === 0 && fechaActual.getDate() < fechaNac.getDate()) ? edad - 1 : edad;
+  };
+
+  const formatearFecha = (fecha) => {
+    if (!fecha) return 'N/A';
+    
     try {
-      await axios.delete(`https://backendd-q0zc.onrender.com/api/atletas/${atletas[index]._id}`);
-      const newAtletas = atletas.filter((_, i) => i !== index);
-      setAtletas(newAtletas);
-      setError('');
+      const fechaObj = new Date(fecha);
+      if (isNaN(fechaObj.getTime())) {
+        return 'N/A';
+      }
+      
+      return fechaObj.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
     } catch (error) {
-      console.error('Error al eliminar atleta:', error);
-      setError('Error al eliminar el atleta. Intente de nuevo.');
+      return 'N/A';
     }
-  };
-
-  const handleOpenModal = (index = null) => {
-    if (index !== null) {
-      setFormData({ ...atletas[index] });
-      setEditIndex(index);
-    } else {
-      setFormData({ nombre: '', edad: '', contacto: '', estado: 'activo' });
-      setEditIndex(null);
-    }
-    setOpenModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setOpenModal(false);
-    setFormData({ nombre: '', edad: '', contacto: '', estado: 'activo' });
-    setEditIndex(null);
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <CircularProgress />
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress size={60} sx={{ color: '#800020' }} />
       </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh', fontFamily: "'Arial', 'Helvetica', sans-serif" }}>
-      <Typography variant="h4" align="center" gutterBottom sx={{ color: '#800020', fontWeight: 'bold' }}>
-        Gestión de Atletas
+    <Container maxWidth="xl" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh' }}>
+      <Typography variant="h4" align="center" gutterBottom sx={{ color: '#800020', fontWeight: 'bold', mb: 4 }}>
+        🏃 Gestión de Atletas del Club
       </Typography>
 
-      {/* Solicitudes pendientes */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold', mb: 2 }}>
-          Solicitudes de Atletas para unirse al Club
-        </Typography>
-        {solicitudes.length === 0 ? (
-          <Typography>No hay solicitudes pendientes.</Typography>
-        ) : (
-          <List>
-            {solicitudes.map((sol) => {
-              const atleta = atletasSolicitudes.find(a => a._id === sol.atletaId);
-              return (
-                <ListItem key={sol._id} divider>
-                  <ListItemText
-                    primary={atleta ? `${atleta.nombre} ${atleta.apellidopa || ''} ${atleta.apellidoma || ''}` : 'Atleta desconocido'}
-                    secondary={`Solicitud: ${sol.tipo === 'asociar' ? 'Unirse al club' : 'Ser independiente'}`}
-                  />
-                  <ListItemSecondaryAction>
-                    <IconButton color="success" onClick={() => handleSolicitud(sol._id, 'aceptada')}><CheckIcon /></IconButton>
-                    <IconButton color="error" onClick={() => handleSolicitud(sol._id, 'rechazada')}><CloseIcon /></IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              );
-            })}
-          </List>
-        )}
-      </Box>
-
       {error && (
-        <Box sx={{ mb: 2 }}>
-          <Alert severity="error" onClose={() => setError('')}>
-            {error}
-          </Alert>
-        </Box>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
       )}
 
-      <Box sx={{ mb: 2, textAlign: 'right' }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenModal()}
-          sx={{
-            background: '#800020',
-            padding: '10px 20px',
-            borderRadius: '8px',
-            fontWeight: 'bold',
-            '&:hover': {
-              background: '#7A4069',
-              transform: 'translateY(-2px)',
-              boxShadow: '0 4px 12px rgba(122, 64, 105, 0.3)',
-            },
-          }}
-        >
-          Agregar Atleta
-        </Button>
-      </Box>
+      <Grid container spacing={3}>
+        {/* Solicitudes de Atletas para unirse al Club */}
+        <Grid item xs={12} md={6}>
+          <Paper elevation={3} sx={{ p: 4, borderRadius: '12px', background: '#FFFFFF', boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+              <PersonAddIcon sx={{ color: '#800020' }} />
+              <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
+                Solicitudes de Atletas para unirse al Club
+              </Typography>
+              {solicitudes.length > 0 && (
+                <Chip 
+                  label={solicitudes.length} 
+                  color="warning" 
+                  size="small"
+                />
+              )}
+            </Box>
 
-      <Paper elevation={3} sx={{ p: 2, borderRadius: '12px', background: '#FFFFFF' }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Nombre</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Edad</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Contacto</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Estado</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Acciones</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {atletas.map((atleta, index) => (
-              <TableRow key={index} sx={{ '&:hover': { backgroundColor: '#FAFAFF' }, transition: 'background-color 0.3s' }}>
-                <TableCell sx={{ color: '#333333' }}>{atleta.nombre}</TableCell>
-                <TableCell sx={{ color: '#333333' }}>{atleta.edad}</TableCell>
-                <TableCell sx={{ color: '#333333' }}>{atleta.contacto}</TableCell>
-                <TableCell sx={{ color: '#333333' }}>{atleta.estado}</TableCell>
-                <TableCell>
-                  <IconButton onClick={() => handleOpenModal(index)} color="primary" sx={{ '&:hover': { backgroundColor: 'rgba(128, 0, 32, 0.1)' } }}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton onClick={() => handleDelete(index)} color="error" sx={{ '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.1)' } }}>
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
+            {loadingSolicitudes ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                <CircularProgress size={30} />
+              </Box>
+            ) : solicitudes.length === 0 ? (
+              <Alert severity="info">
+                No hay solicitudes pendientes en este momento.
+              </Alert>
+            ) : (
+              <List>
+                {solicitudes.map((solicitud) => (
+                  <ListItem 
+                    key={solicitud._id} 
+                    sx={{ 
+                      border: '1px solid #e0e0e0', 
+                      borderRadius: '8px', 
+                      mb: 1,
+                      '&:hover': { backgroundColor: '#f5f5f5' }
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Avatar sx={{ width: 32, height: 32, bgcolor: '#800020' }}>
+                            {solicitud.datosAtleta?.nombre?.charAt(0) || 'A'}
+                          </Avatar>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                            {solicitud.datosAtleta?.nombreCompleto || 'Atleta'}
+                          </Typography>
+                        </Box>
+                      }
+                      secondary={
+                        <Box>
+                          <Typography variant="body2" color="textSecondary">
+                            <strong>Edad:</strong> {solicitud.datosAtleta?.edad || 'N/A'} años
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            <strong>Género:</strong> {solicitud.datosAtleta?.genero || 'N/A'}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            <strong>Fecha:</strong> {formatearFecha(solicitud.fechaSolicitud)}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                    <ListItemSecondaryAction>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton
+                          color="success"
+                          onClick={() => handleAceptarSolicitud(solicitud._id)}
+                          title="Aceptar solicitud"
+                        >
+                          <CheckIcon />
+                        </IconButton>
+                        <IconButton
+                          color="error"
+                          onClick={() => handleRechazarSolicitud(solicitud._id)}
+                          title="Rechazar solicitud"
+                        >
+                          <CloseIcon />
+                        </IconButton>
+                        <IconButton
+                          color="primary"
+                          onClick={() => handleVerSolicitud(solicitud)}
+                          title="Ver detalles"
+                        >
+                          <GroupIcon />
+                        </IconButton>
+                      </Box>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </Paper>
+        </Grid>
 
-      <Modal open={openModal} onClose={handleCloseModal}>
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 400,
-            bgcolor: '#FFFFFF',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
-            p: 4,
-            borderRadius: '12px',
-            fontFamily: "'Arial', 'Helvetica', sans-serif",
-          }}
-        >
-          <Typography variant="h6" gutterBottom sx={{ color: '#800020', fontWeight: 'bold' }}>
-            {editIndex !== null ? 'Editar Atleta' : 'Agregar Atleta'}
-          </Typography>
-          <TextField
-            fullWidth
-            label="Nombre"
-            name="nombre"
-            value={formData.nombre}
-            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-            sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#FAFAFF', '&:hover fieldset': { borderColor: '#7A4069' }, '&.Mui-focused fieldset': { borderColor: '#7A4069', boxShadow: '0 0 8px rgba(122, 64, 105, 0.3)' } }, '& .MuiInputLabel-root': { color: '#7A4069', fontWeight: '500' }, '& .MuiInputLabel-root.Mui-focused': { color: '#7A4069' } }}
-          />
-          <TextField
-            fullWidth
-            label="Edad"
-            name="edad"
-            type="number"
-            value={formData.edad}
-            onChange={(e) => setFormData({ ...formData, edad: e.target.value })}
-            sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#FAFAFF', '&:hover fieldset': { borderColor: '#7A4069' }, '&.Mui-focused fieldset': { borderColor: '#7A4069', boxShadow: '0 0 8px rgba(122, 64, 105, 0.3)' } }, '& .MuiInputLabel-root': { color: '#7A4069', fontWeight: '500' }, '& .MuiInputLabel-root.Mui-focused': { color: '#7A4069' } }}
-          />
-          <TextField
-            fullWidth
-            label="Contacto"
-            name="contacto"
-            value={formData.contacto}
-            onChange={(e) => setFormData({ ...formData, contacto: e.target.value })}
-            sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#FAFAFF', '&:hover fieldset': { borderColor: '#7A4069' }, '&.Mui-focused fieldset': { borderColor: '#7A4069', boxShadow: '0 0 8px rgba(122, 64, 105, 0.3)' } }, '& .MuiInputLabel-root': { color: '#7A4069', fontWeight: '500' }, '& .MuiInputLabel-root.Mui-focused': { color: '#7A4069' } }}
-          />
-          <TextField
-            fullWidth
-            select
-            label="Estado"
-            name="estado"
-            value={formData.estado}
-            onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-            sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#FAFAFF', '&:hover fieldset': { borderColor: '#7A4069' }, '&.Mui-focused fieldset': { borderColor: '#7A4069', boxShadow: '0 0 8px rgba(122, 64, 105, 0.3)' } }, '& .MuiInputLabel-root': { color: '#7A4069', fontWeight: '500' }, '& .MuiInputLabel-root.Mui-focused': { color: '#7A4069' } }}
-          >
-            <MenuItem value="activo">Activo</MenuItem>
-            <MenuItem value="inactivo">Inactivo</MenuItem>
-          </TextField>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-            <Button onClick={handleCloseModal} variant="outlined" sx={{ color: '#7A4069', borderColor: '#7A4069', '&:hover': { borderColor: '#D32F2F', color: '#D32F2F' } }}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleAddOrEdit}
-              variant="contained"
-              sx={{
-                background: '#800020',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                '&:hover': {
-                  background: '#7A4069',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(122, 64, 105, 0.3)',
-                },
-              }}
-            >
-              Guardar
-            </Button>
+        {/* Atletas pertenecientes al club */}
+        <Grid item xs={12}>
+          <Paper elevation={3} sx={{ p: 4, borderRadius: '12px', background: '#FFFFFF', boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+              <PeopleIcon sx={{ color: '#800020' }} />
+              <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
+                Atletas pertenecientes al club
+              </Typography>
+              {atletas.length > 0 && (
+                <Chip 
+                  label={atletas.length} 
+                  color="success" 
+                  size="small"
+                />
+              )}
+            </Box>
+
+            {atletas.length === 0 ? (
+              <Alert severity="info">
+                No hay atletas registrados en este club.
+              </Alert>
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Nombre Completo</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>CURP</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Teléfono</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Correo</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Género</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Estado</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Fecha de Ingreso</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Acciones</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {atletas.map((atleta) => (
+                      <TableRow key={atleta._id} sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Avatar sx={{ width: 32, height: 32, bgcolor: '#800020' }}>
+                              {atleta.nombre?.charAt(0) || 'A'}
+                            </Avatar>
+                            <Typography variant="body2">
+                              {atleta.nombre} {atleta.apellidopa} {atleta.apellidoma}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>{atleta.curp || 'N/A'}</TableCell>
+                        <TableCell>{atleta.telefono || 'N/A'}</TableCell>
+                        <TableCell>{atleta.gmail || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={atleta.sexo || 'N/A'} 
+                            size="small"
+                            color={atleta.sexo === 'masculino' ? 'primary' : 'secondary'}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label="Activo" 
+                            color="success" 
+                            size="small"
+                          />
+                        </TableCell>
+                                                 <TableCell>
+                           {atleta.fechaIngresoClub ? 
+                             formatearFecha(atleta.fechaIngresoClub) : 
+                             (atleta.createdAt ? formatearFecha(atleta.createdAt) : 'N/A')
+                           }
+                         </TableCell>
+                        <TableCell>
+                          <IconButton
+                            color="error"
+                            onClick={() => handleExpulsarAtleta(atleta)}
+                            title="Expulsar del club"
+                            sx={{ 
+                              '&:hover': { 
+                                backgroundColor: 'rgba(244, 67, 54, 0.1)' 
+                              } 
+                            }}
+                          >
+                            <PersonRemoveIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Modal de confirmación de expulsión */}
+      <Dialog open={modalExpulsionOpen} onClose={cancelarExpulsion} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <WarningIcon sx={{ color: '#f57c00' }} />
+            <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
+              Confirmar Expulsión
+            </Typography>
           </Box>
-        </Box>
-      </Modal>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" paragraph>
+            ¿Estás seguro de que quieres expulsar a{' '}
+            <strong>{atletaAExpulsar?.nombre} {atletaAExpulsar?.apellidopa} {atletaAExpulsar?.apellidoma}</strong> del club?
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Esta acción:
+          </Typography>
+          <ul>
+            <li>Desvinculará al atleta del club</li>
+            <li>El atleta quedará como atleta independiente</li>
+            <li>No se podrá deshacer automáticamente</li>
+          </ul>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelarExpulsion} color="primary">
+            Cancelar
+          </Button>
+          <Button 
+            onClick={confirmarExpulsion} 
+            color="error" 
+            variant="contained"
+            startIcon={<PersonRemoveIcon />}
+          >
+            Confirmar Expulsión
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

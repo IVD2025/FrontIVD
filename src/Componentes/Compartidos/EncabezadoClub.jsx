@@ -7,8 +7,7 @@ import {
   ProfileOutlined, 
   TeamOutlined, 
   CalendarOutlined, 
-  TrophyOutlined, 
-  NotificationOutlined 
+  TrophyOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -62,9 +61,6 @@ const EncabezadoClub = () => {
         break;
       case 'resultados':
         navigate('/club/resultados');
-        break;
-      case 'convocatoria':
-        navigate('/club/convocatoria');
         break;
       case 'perfil':
         navigate('/club/perfil');
@@ -291,16 +287,6 @@ const EncabezadoClub = () => {
             >
               <TrophyOutlined style={{ color: '#FFFFFF', marginRight: '8px' }} />
               Resultados
-            </li>
-            <li
-              className={active === 'convocatoria' ? 'active' : ''}
-              onClick={() => {
-                handleClick('convocatoria');
-                handleMenuClick('convocatoria');
-              }}
-            >
-              <NotificationOutlined style={{ color: '#FFFFFF', marginRight: '8px' }} />
-              Convocatoria
             </li>
             <li
               className={active === 'perfil' ? 'active' : ''}

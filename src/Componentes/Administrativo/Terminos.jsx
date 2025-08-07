@@ -22,9 +22,11 @@ const Terminos = () => {
     try {
       const response = await axios.get('http://localhost:5000/api/terminos');
       const formattedTerminos = response.data.map(t => ({
-        ...t,
-        createdAt: new Date(t.createdAt),
-        updatedAt: t.updatedAt ? new Date(t.updatedAt) : null,
+        _id: t._id,
+        titulo: t.titulo || '',
+        contenido: t.contenido || '',
+        createdAt: t.createdAt ? new Date(t.createdAt) : new Date(),
+        updatedAt: t.updatedAt ? new Date(t.updatedAt) : null
       }));
       setTerminos(formattedTerminos);
     } catch (err) {
@@ -63,7 +65,6 @@ const Terminos = () => {
 
       if (editingId) {
         response = await axios.put(`http://localhost:5000/api/terminos/${editingId}`, payload);
-        // Verificar si la operación fue exitosa y actualizar el estado
         if (response.status === 200 || response.status === 201) {
           MySwal.fire({
             title: '¡Éxito!',
@@ -72,7 +73,15 @@ const Terminos = () => {
             confirmButtonText: 'Aceptar',
             confirmButtonColor: '#7A4069',
           });
-          setTerminos(terminos.map(t => t._id.toString() === editingId ? { ...response.data, createdAt: new Date(response.data.createdAt), updatedAt: new Date(response.data.updatedAt) } : t));
+          // Actualizar el término en el estado local con verificación de datos
+          const terminoActualizado = {
+            _id: response.data._id,
+            titulo: response.data.titulo || '',
+            contenido: response.data.contenido || '',
+            createdAt: response.data.createdAt ? new Date(response.data.createdAt) : new Date(),
+            updatedAt: response.data.updatedAt ? new Date(response.data.updatedAt) : new Date()
+          };
+          setTerminos(terminos.map(t => t._id.toString() === editingId ? terminoActualizado : t));
         } else {
           throw new Error(response.data?.message || 'Error desconocido');
         }
@@ -85,7 +94,15 @@ const Terminos = () => {
           confirmButtonText: 'Aceptar',
           confirmButtonColor: '#7A4069',
         });
-        setTerminos([...terminos, { ...response.data, createdAt: new Date(response.data.createdAt), updatedAt: new Date(response.data.updatedAt) }]);
+        // Como solo puede haber un término, reemplazar completamente el array
+        const nuevoTermino = {
+          _id: response.data._id,
+          titulo: response.data.titulo || '',
+          contenido: response.data.contenido || '',
+          createdAt: response.data.createdAt ? new Date(response.data.createdAt) : new Date(),
+          updatedAt: response.data.updatedAt ? new Date(response.data.updatedAt) : new Date()
+        };
+        setTerminos([nuevoTermino]);
       }
       setTermino({ titulo: '', contenido: '' });
       setEditingId(null);
@@ -94,7 +111,7 @@ const Terminos = () => {
       MySwal.fire({
         title: '¡Error!',
         text: errorMessage,
-        icon: 'success',
+        icon: 'error',
         confirmButtonText: 'Aceptar',
         confirmButtonColor: '#800020',
       });
@@ -107,7 +124,7 @@ const Terminos = () => {
   const handleDelete = async (id) => {
     const result = await MySwal.fire({
       title: '¿Estás seguro?',
-      text: 'Esta acción no se puede deshacer.',
+      text: 'Esta acción eliminará el término actual y no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#800020',
@@ -120,25 +137,21 @@ const Terminos = () => {
       setLoading(true);
       try {
         const response = await axios.delete(`http://localhost:5000/api/terminos/${id}`);
-        // Verificar si la operación fue exitosa y actualizar el estado
-        if (response.status === 200) {
-          setTerminos(terminos.filter(t => t._id.toString() !== id));
-          MySwal.fire({
-            title: '¡Éxito!',
-            text: 'Término eliminado correctamente.',
-            icon: 'success',
-            confirmButtonText: 'Aceptar',
-            confirmButtonColor: '#7A4069',
-          });
-        } else {
-          throw new Error(response.data?.message || 'Error desconocido');
-        }
+        // Limpiar completamente el array de términos
+        setTerminos([]);
+        MySwal.fire({
+          title: '¡Éxito!',
+          text: 'Término eliminado correctamente.',
+          icon: 'success',
+          confirmButtonText: 'Aceptar',
+          confirmButtonColor: '#7A4069',
+        });
       } catch (err) {
         const errorMessage = err.response?.data?.message || 'No se pudo eliminar el término.';
         MySwal.fire({
           title: '¡Error!',
           text: errorMessage,
-          icon: 'success',
+          icon: 'error',
           confirmButtonText: 'Aceptar',
           confirmButtonColor: '#800020',
         });
@@ -162,6 +175,13 @@ const Terminos = () => {
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>Gestión de Términos</h1>
+      <div style={styles.infoBox}>
+        <p style={styles.infoText}>
+          <strong>Nota:</strong> Solo puede existir un término y condiciones activo en el sistema. 
+          Al crear un nuevo término, se eliminará automáticamente el anterior. 
+          Este término se mostrará en todos los pies de página del sitio.
+        </p>
+      </div>
       {loading && <p style={styles.loading}>Cargando...</p>}
       {error && <p style={styles.error}>{error}</p>}
       <div style={styles.flexContainer}>
@@ -211,8 +231,8 @@ const Terminos = () => {
         </section>
 
         <section style={styles.terminosGuardadosContainer}>
-          <h2 style={styles.subtitle}>Términos Guardados</h2>
-          {terminos.length === 0 && !loading && <p>No hay términos guardados.</p>}
+          <h2 style={styles.subtitle}>Término Actual</h2>
+          {terminos.length === 0 && !loading && <p>No hay términos guardados. Crea el primer término y condiciones del sistema.</p>}
           {terminos.length > 0 && (
             <table style={styles.table}>
               <thead>
@@ -230,9 +250,9 @@ const Terminos = () => {
                     <td style={styles.td}>{termino.titulo}</td>
                     <td style={styles.td}>
                       <ul style={styles.contentList}>
-                        {termino.contenido.split('\n').map((item, index) => (
+                        {termino.contenido ? termino.contenido.split('\n').map((item, index) => (
                           item.trim() && <li key={index} style={styles.contentItem}>{item.trim()}</li>
-                        ))}
+                        )) : <li style={styles.contentItem}>Sin contenido</li>}
                       </ul>
                     </td>
                     <td style={styles.td}>{termino.createdAt.toLocaleString()}</td>
@@ -429,6 +449,19 @@ const styles = {
     textAlign: 'center',
     color: '#D32F2F',
     fontSize: '18px',
+  },
+  infoBox: {
+    background: '#E3F2FD',
+    border: '2px solid #2196F3',
+    borderRadius: '8px',
+    padding: '15px',
+    marginBottom: '20px',
+  },
+  infoText: {
+    margin: '0',
+    color: '#1976D2',
+    fontSize: '14px',
+    lineHeight: '1.5',
   },
 };
 

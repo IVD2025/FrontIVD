@@ -23,11 +23,11 @@ import {
   CardContent,
   Chip,
 } from '@mui/material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import DownloadIcon from '@mui/icons-material/Download';
 import { useAuth } from '../Autenticacion/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { PDFDownloadLink, Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+// import { PDFDownloadLink, Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+import jsPDF from 'jspdf';
 
 const ConvocatoriasAtleta = () => {
   const { user } = useAuth();
@@ -41,7 +41,6 @@ const ConvocatoriasAtleta = () => {
   const [convocatoriaSeleccionada, setConvocatoriaSeleccionada] = useState(null);
   const [yaInscritos, setYaInscritos] = useState([]);
   const [dataLoaded, setDataLoaded] = useState(false);
-  const [modalVistaPreviaOpen, setModalVistaPreviaOpen] = useState(false);
 
   // Función para calcular edad
   const calcularEdad = (fechaNacimiento) => {
@@ -187,109 +186,35 @@ const ConvocatoriasAtleta = () => {
     }
   };
 
-  // Función de debugging para verificar datos del usuario
-  const debugUserData = async () => {
-    try {
-      console.log('🔍 Debugging datos del usuario...');
-      console.log('👤 User object completo:', user);
-      console.log('🆔 User ID:', user.id);
-      console.log('📅 Fecha de nacimiento:', user.fechaNacimiento);
-      console.log('👥 Sexo:', user.sexo);
-      
-      const response = await axios.get(`http://localhost:5000/api/eventos/debug-atleta/${user.id}`);
-      console.log('📊 Datos del atleta desde backend:', response.data);
-      
-      const edadFrontend = calcularEdad(user.fechaNacimiento);
-      const edadBackend = response.data.calculos.edadCalculada;
-      
-      console.log('🔍 Comparación de edades:');
-      console.log('  Frontend:', edadFrontend);
-      console.log('  Backend:', edadBackend);
-      console.log('  ¿Coinciden?', edadFrontend === edadBackend);
-      
-    } catch (error) {
-      console.error('❌ Error en debug:', error);
-      console.error('❌ Error details:', error.response?.data);
-    }
-  };
-
-  // Función de debugging para verificar eventos
-  const debugEventos = async () => {
-    try {
-      console.log('🔍 Debugging eventos...');
-      const response = await axios.get('http://localhost:5000/api/eventos/debug-eventos');
-      console.log('📊 Datos de eventos desde backend:', response.data);
-    } catch (error) {
-      console.error('❌ Error en debug eventos:', error);
-      console.error('❌ Error details:', error.response?.data);
-    }
-  };
-
-  // Función para probar filtrado manual
-  const probarFiltrado = async () => {
-    try {
-      const edad = calcularEdad(user.fechaNacimiento);
-      const genero = (user.sexo || '').toLowerCase();
-      
-      console.log('🧪 Probando filtrado manual...');
-      console.log('📊 Datos de prueba:', { edad, genero });
-      
-      if (edad === null || !genero) {
-        console.log('❌ Datos insuficientes para prueba');
-        return;
-      }
-      
-      const response = await axios.get(`http://localhost:5000/api/eventos/convocatorias-para-atleta?edad=${edad}&genero=${genero}`);
-      console.log('✅ Resultado del filtrado:', response.data);
-      console.log('📋 Número de convocatorias encontradas:', response.data.length);
-      
-    } catch (error) {
-      console.error('❌ Error en prueba de filtrado:', error);
-      console.error('❌ Error details:', error.response?.data);
-    }
-  };
-
-  // Función para corregir fecha de cierre del evento
-  const corregirFechaCierre = async () => {
-    try {
-      console.log('🔧 Corrigiendo fecha de cierre del evento...');
-      
-      const response = await axios.get('http://localhost:5000/api/eventos/debug-eventos');
-      const eventos = response.data.todosEventos;
-      
-      if (eventos.length === 0) {
-        console.log('❌ No hay eventos para corregir');
-        return;
-      }
-      
-      const evento = eventos[0];
-      console.log('📋 Evento a corregir:', evento);
-      
-      const fechaActual = new Date();
-      const nuevaFechaCierre = new Date(fechaActual.getTime() + (7 * 24 * 60 * 60 * 1000));
-      
-      console.log('📅 Nueva fecha de cierre:', nuevaFechaCierre);
-      
-      const updateResponse = await axios.put(`http://localhost:5000/api/eventos/${evento.id}/actualizar-fecha-cierre`, {
-        fechaCierre: nuevaFechaCierre.toISOString()
-      });
-      
-      console.log('✅ Fecha de cierre actualizada:', updateResponse.data);
-      
-      await fetchConvocatorias();
-      
-    } catch (error) {
-      console.error('❌ Error al corregir fecha de cierre:', error);
-      console.error('❌ Error details:', error.response?.data);
-    }
-  };
-
   const handleInscribirse = (convocatoria) => {
+    if (!convocatoria || !user) {
+      setErrorMessage('Error: Datos insuficientes para la inscripción.');
+      return;
+    }
+    
+    // Verificar que el usuario tenga todos los datos necesarios
+    if (!user.nombre || !user.curp || !user.fechaNacimiento || !user.sexo) {
+      setErrorMessage('Error: Tu perfil debe estar completo para participar. Verifica que tengas nombre, CURP, fecha de nacimiento y sexo registrados.');
+      return;
+    }
+    
+    // Verificar que la convocatoria no haya cerrado
+    if (new Date(convocatoria.fechaCierre) <= new Date()) {
+      setErrorMessage('Error: Esta convocatoria ya ha cerrado las inscripciones.');
+      return;
+    }
+    
     setConvocatoriaSeleccionada(convocatoria);
     setModalOpen(true);
   };
 
   const handleConfirmarInscripcion = async () => {
+    if (!convocatoriaSeleccionada || !user) {
+      setErrorMessage('Error: Datos insuficientes para la inscripción.');
+      setModalOpen(false);
+      return;
+    }
+
     setInscribiendo(true);
     try {
       const response = await axios.post('http://localhost:5000/api/eventos/inscripciones', {
@@ -318,14 +243,9 @@ const ConvocatoriasAtleta = () => {
         Categoría: ${validaciones.categoria}`);
     } catch (error) {
       setInscribiendo(false);
-      setErrorMessage(error.response?.data?.message || 'Error al inscribirse.');
+      console.error('Error en inscripción:', error);
+      setErrorMessage(error.response?.data?.message || 'Error al inscribirse. Intente de nuevo.');
     }
-  };
-
-  // Funciones para manejar vista previa
-  const handleVerVistaPrevia = (convocatoria) => {
-    setConvocatoriaSeleccionada(convocatoria);
-    setModalVistaPreviaOpen(true);
   };
 
   // Función para formatear fechas
@@ -343,6 +263,7 @@ const ConvocatoriasAtleta = () => {
   };
 
   // PDF styles profesional (igual al administrador)
+  /*
   const pdfStyles = StyleSheet.create({
     page: { 
       padding: 40, 
@@ -494,7 +415,6 @@ const ConvocatoriasAtleta = () => {
     return (
       <Document>
         <Page size="A4" style={pdfStyles.page}>
-          {/* Encabezado con logo y datos institucionales */}
           <View style={pdfStyles.header}>
             {logoUrl && <Image src={logoUrl} style={pdfStyles.logo} />}
             <View style={pdfStyles.headerText}>
@@ -504,24 +424,20 @@ const ConvocatoriasAtleta = () => {
             </View>
           </View>
 
-          {/* Fecha del documento */}
           <View style={pdfStyles.dateSection}>
             <Text style={pdfStyles.dateText}>Veracruz, Ver. a {fechaActual}</Text>
           </View>
 
-          {/* Saludo y presentación */}
           <View style={pdfStyles.saludoSection}>
             <Text style={pdfStyles.saludoText}>
               El Instituto Veracruzano del Deporte, a través de la presente convocatoria, invita a todos los atletas interesados a participar en el siguiente evento deportivo:
             </Text>
           </View>
 
-          {/* Información principal del evento */}
           <View style={pdfStyles.mainSection}>
             <Text style={pdfStyles.eventTitle}>{convocatoria.titulo}</Text>
           </View>
 
-          {/* Detalles del evento */}
           <View style={pdfStyles.detailsSection}>
             <Text style={pdfStyles.sectionTitle}>INFORMACIÓN DEL EVENTO:</Text>
             
@@ -566,7 +482,6 @@ const ConvocatoriasAtleta = () => {
             </View>
           </View>
 
-          {/* Descripción adicional */}
           {convocatoria.descripcion && (
             <View style={pdfStyles.descriptionSection}>
               <Text style={pdfStyles.sectionTitle}>INFORMACIÓN ADICIONAL:</Text>
@@ -574,7 +489,6 @@ const ConvocatoriasAtleta = () => {
             </View>
           )}
 
-          {/* Instrucciones */}
           <View style={pdfStyles.instructionsSection}>
             <Text style={pdfStyles.sectionTitle}>INSTRUCCIONES:</Text>
             <Text style={pdfStyles.instructionText}>
@@ -591,7 +505,6 @@ const ConvocatoriasAtleta = () => {
             </Text>
           </View>
 
-          {/* Pie de página */}
           <View style={pdfStyles.footer}>
             <Text style={pdfStyles.footerText}>
               Esta convocatoria es oficial y ha sido emitida por el Instituto Veracruzano del Deporte.
@@ -604,6 +517,7 @@ const ConvocatoriasAtleta = () => {
       </Document>
     );
   };
+  */
 
   const handleViewDetails = (id) => {
     navigate(`/atleta/convocatorias/${id}`);
@@ -611,6 +525,203 @@ const ConvocatoriasAtleta = () => {
 
   const handleDownload = (url) => {
     window.open(url, '_blank');
+  };
+
+  // Función para generar y descargar PDF de convocatoria
+  const handleDescargarPDF = async (convocatoria) => {
+    try {
+      // Verificar que jsPDF esté disponible
+      if (typeof jsPDF === 'undefined') {
+        console.error('jsPDF no está definido');
+        setErrorMessage('Error: La librería jsPDF no está disponible. Verifica que esté instalada correctamente.');
+        return;
+      }
+      
+      // Crear nuevo documento PDF
+      const doc = new jsPDF();
+      
+      // Variables para posicionamiento
+      let y = 15;
+      const margin = 20;
+      const pageWidth = doc.internal.pageSize.width;
+      const contentWidth = pageWidth - (2 * margin);
+      
+      // Función para agregar texto con wrap
+      const addText = (text, x, y, maxWidth) => {
+        const lines = doc.splitTextToSize(text, maxWidth);
+        doc.text(lines, x, y);
+        return y + (lines.length * 5);
+      };
+      
+      // Función para agregar título centrado
+      const addCenteredTitle = (text, y, fontSize = 16) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', 'bold');
+        const textWidth = doc.getTextWidth(text);
+        const x = (pageWidth - textWidth) / 2;
+        doc.text(text, x, y);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        return y + 8;
+      };
+      
+      // Función para agregar subtítulo
+      const addSubtitle = (text, y, fontSize = 12) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(128, 0, 32); // Color #800020 (marrón oscuro)
+        doc.text(text, margin, y);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        return y + 6;
+      };
+      
+      // Logo en la esquina superior izquierda
+      if (logoUrl) {
+        try {
+          // Agregar logo circular en la esquina superior izquierda
+          doc.addImage(logoUrl, 'JPEG', margin, y, 20, 20);
+          y += 25; // Espacio después del logo
+        } catch (logoError) {
+          console.warn('No se pudo cargar el logo:', logoError);
+        }
+      }
+      
+      // Títulos del encabezado (centrados)
+      y = addCenteredTitle('INSTITUTO VERACRUZANO DEL DEPORTE', y, 16);
+      y = addCenteredTitle('Gobierno del Estado de Veracruz', y, 10);
+      y = addCenteredTitle('CONVOCATORIA OFICIAL', y, 14);
+      
+      y += 10;
+      
+      // Línea horizontal marrón separando el encabezado
+      doc.setDrawColor(128, 0, 32); // Color marrón #800020
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 12;
+      
+      // Fecha
+      const fechaActual = new Date().toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(`Veracruz, Ver. a ${fechaActual}`, pageWidth - margin - doc.getTextWidth(`Veracruz, Ver. a ${fechaActual}`), y);
+      doc.setFontSize(10);
+      
+      y += 10;
+      
+      // Introducción
+      const introText = 'El Instituto Veracruzano del Deporte, a través de la presente convocatoria, invita a todos los atletas interesados a participar en el siguiente evento deportivo:';
+      y = addText(introText, margin, y, contentWidth);
+      
+      y += 8;
+      
+      // Título del evento (centrado y en marrón)
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(128, 0, 32); // Color marrón #800020
+      const eventTitle = convocatoria.titulo || 'Evento Deportivo';
+      const eventTitleWidth = doc.getTextWidth(eventTitle);
+      const eventTitleX = (pageWidth - eventTitleWidth) / 2;
+      doc.text(eventTitle, eventTitleX, y);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      y += 10;
+      
+      // Información del evento
+      y = addSubtitle('INFORMACIÓN DEL EVENTO:', y, 12);
+      
+      // Detalles del evento (más compactos)
+      const detalles = [
+        { label: 'Disciplina:', value: convocatoria.disciplina || 'No especificada' },
+        { label: 'Categoría:', value: convocatoria.categoria || 'No especificada' },
+        { label: 'Género:', value: convocatoria.genero === 'mixto' ? 'Mixto (Masculino y Femenino)' : 
+                                  convocatoria.genero === 'masculino' ? 'Masculino' : 
+                                  convocatoria.genero === 'femenino' ? 'Femenino' : 'No especificado' },
+        { label: 'Rango de Edad:', value: `De ${convocatoria.edadMin || 'N/A'} a ${convocatoria.edadMax || 'N/A'} años` },
+        { label: 'Lugar:', value: convocatoria.lugar || 'No especificado' },
+        { label: 'Fecha del Evento:', value: convocatoria.fecha ? new Date(convocatoria.fecha).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }) : 'No especificada' },
+        { label: 'Hora:', value: convocatoria.hora || 'No especificada' },
+        { label: 'Fecha Límite de Inscripción:', value: convocatoria.fechaCierre ? new Date(convocatoria.fechaCierre).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }) : 'No especificada' }
+      ];
+      
+      detalles.forEach(detalle => {
+        const labelText = `• ${detalle.label}`;
+        const valueText = detalle.value;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(labelText, margin, y);
+        doc.setFont('helvetica', 'normal');
+        
+        const labelWidth = doc.getTextWidth(labelText);
+        const valueX = margin + labelWidth + 3;
+        const valueWidth = contentWidth - labelWidth - 3;
+        
+        y = addText(valueText, valueX, y, valueWidth);
+        y += 3;
+      });
+      
+      // Descripción adicional si existe
+      if (convocatoria.descripcion) {
+        y += 3;
+        y = addSubtitle('INFORMACIÓN ADICIONAL:', y, 12);
+        y = addText(convocatoria.descripcion, margin, y, contentWidth);
+      }
+      
+      y += 6;
+      
+      // Instrucciones
+      y = addSubtitle('INSTRUCCIONES:', y, 12);
+      
+      const instrucciones = [
+        'Los interesados deberán registrarse a través de la plataforma oficial del Instituto Veracruzano del Deporte.',
+        'Es obligatorio presentar la convocatoria oficial el día del evento.',
+        'Se recomienda llegar con 30 minutos de anticipación.',
+        'Para mayor información, consultar la página web oficial o contactar a la dirección de deportes.'
+      ];
+      
+      instrucciones.forEach(instruccion => {
+        y = addText(`• ${instruccion}`, margin, y, contentWidth);
+        y += 2;
+      });
+      
+      // Pie de página
+      y += 8;
+      
+      // Línea divisoria gris clara
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 6;
+      
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Esta convocatoria es oficial y ha sido emitida por el Instituto Veracruzano del Deporte.', pageWidth / 2, y, { align: 'center' });
+      y += 4;
+      doc.text(`Documento generado el ${fechaActual}`, pageWidth / 2, y, { align: 'center' });
+      
+      // Descargar el PDF
+      const fileName = `Convocatoria_${convocatoria.titulo || 'evento'}.pdf`;
+      doc.save(fileName);
+      
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      console.error('Detalles del error:', error.message);
+      setErrorMessage(`Error al generar el documento PDF: ${error.message}`);
+    }
   };
 
   // Verificar si el usuario está autenticado
@@ -638,38 +749,6 @@ const ConvocatoriasAtleta = () => {
         </Box>
       )}
       
-      {/* Botones de debugging temporal */}
-      <Box sx={{ textAlign: 'center', mb: 2, display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Button 
-          variant="outlined" 
-          onClick={debugUserData}
-          sx={{ color: '#800020', borderColor: '#800020' }}
-        >
-          🔍 Debug Usuario
-        </Button>
-        <Button 
-          variant="outlined" 
-          onClick={debugEventos}
-          sx={{ color: '#800020', borderColor: '#800020' }}
-        >
-          📋 Debug Eventos
-        </Button>
-        <Button 
-          variant="outlined" 
-          onClick={probarFiltrado}
-          sx={{ color: '#800020', borderColor: '#800020' }}
-        >
-          🧪 Probar Filtrado
-        </Button>
-        <Button 
-          variant="outlined" 
-          onClick={corregirFechaCierre}
-          sx={{ color: '#800020', borderColor: '#800020' }}
-        >
-          🔧 Corregir Fecha
-        </Button>
-      </Box>
-
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
           <CircularProgress />
@@ -713,29 +792,13 @@ const ConvocatoriasAtleta = () => {
                   <TableCell>
                     <IconButton
                       color="primary"
-                      onClick={() => handleVerVistaPrevia(convocatoria)}
-                      sx={{ mr: 1, '&:hover': { backgroundColor: 'rgba(128, 0, 32, 0.1)' } }}
-                      title="Ver Vista Previa"
+                      onClick={() => handleDescargarPDF(convocatoria)}
+                      sx={{ '&:hover': { backgroundColor: 'rgba(128, 0, 32, 0.1)' } }}
+                      title="Descargar Convocatoria"
                     >
-                      <VisibilityIcon />
+                      <DownloadIcon />
                     </IconButton>
-                    <PDFDownloadLink
-                      document={<ConvocatoriaPDF convocatoria={convocatoria} logoUrl={logoUrl} />}
-                      fileName={`Convocatoria_${convocatoria.titulo || 'evento'}.pdf`}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      {({ loading: pdfLoading }) => (
-                        <IconButton
-                          color="primary"
-                          sx={{ '&:hover': { backgroundColor: 'rgba(128, 0, 32, 0.1)' } }}
-                          disabled={pdfLoading}
-                          title="Descargar PDF"
-                        >
-                          <DownloadIcon />
-                        </IconButton>
-                      )}
-                    </PDFDownloadLink>
-                    {/* Botón Inscribirse */}
+                    {/* Botón Participar */}
                     {new Date(convocatoria.fechaCierre) > new Date() && !yaInscritos.includes(convocatoria._id) && (
                       <Button
                         variant="contained"
@@ -745,7 +808,7 @@ const ConvocatoriasAtleta = () => {
                         onClick={() => handleInscribirse(convocatoria)}
                         disabled={inscribiendo}
                       >
-                        Inscribirse
+                        Participar
                       </Button>
                     )}
                     {yaInscritos.includes(convocatoria._id) && (
@@ -767,141 +830,75 @@ const ConvocatoriasAtleta = () => {
         </Typography>
       )}
 
-      {/* Modal de vista previa simplificado */}
-      <Dialog 
-        open={modalVistaPreviaOpen} 
-        onClose={() => setModalVistaPreviaOpen(false)}
-        maxWidth="md" 
-        fullWidth
-      >
-        <DialogTitle>
-          <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
-            📋 Vista Previa - {convocatoriaSeleccionada?.titulo}
-          </Typography>
+      {/* Modal de confirmación de inscripción */}
+      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ color: '#800020', fontWeight: 'bold' }}>
+          Confirmar Participación
         </DialogTitle>
         <DialogContent>
-          {convocatoriaSeleccionada && (
-            <Box sx={{ mt: 2 }}>
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <Typography variant="h5" gutterBottom sx={{ color: '#800020' }}>
-                    {convocatoriaSeleccionada.titulo}
-                  </Typography>
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <Card variant="outlined" sx={{ borderColor: '#800020' }}>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom sx={{ color: '#800020' }}>📅 Información General</Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Fecha:</strong> {formatearFecha(convocatoriaSeleccionada.fecha || convocatoriaSeleccionada.createdAt)}
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Hora:</strong> {convocatoriaSeleccionada.hora}
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Lugar:</strong> {convocatoriaSeleccionada.lugar}
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Estado:</strong> 
-                        <Chip 
-                          label="Activo" 
-                          color="success"
-                          size="small"
-                          sx={{ ml: 1 }}
-                        />
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <Card variant="outlined" sx={{ borderColor: '#800020' }}>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom sx={{ color: '#800020' }}>🏃 Información Deportiva</Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Disciplina:</strong> {convocatoriaSeleccionada.disciplina}
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Categoría:</strong> {convocatoriaSeleccionada.categoria}
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Rango de Edad:</strong> {convocatoriaSeleccionada.edadMin} - {convocatoriaSeleccionada.edadMax} años
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Género:</strong> {convocatoriaSeleccionada.genero}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                
-                {convocatoriaSeleccionada.descripcion && (
-                  <Grid item xs={12}>
-                    <Card variant="outlined" sx={{ borderColor: '#800020' }}>
-                      <CardContent>
-                        <Typography variant="h6" gutterBottom sx={{ color: '#800020' }}>📝 Descripción</Typography>
-                        <Typography variant="body2">
-                          {convocatoriaSeleccionada.descripcion}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                )}
-                
-                <Grid item xs={12}>
-                  <Card variant="outlined" sx={{ borderColor: '#800020' }}>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom sx={{ color: '#800020' }}>📊 Información Técnica</Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>ID del Evento:</strong> {convocatoriaSeleccionada._id}
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Fecha de Creación:</strong> {formatearFecha(convocatoriaSeleccionada.createdAt)}
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Fecha de Cierre:</strong> {formatearFecha(convocatoriaSeleccionada.fechaCierre)}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Box>
-          )}
+          <Typography variant="h6" sx={{ mb: 2, color: '#800020' }}>
+            {convocatoriaSeleccionada?.titulo}
+          </Typography>
+          
+          <Typography variant="body1" sx={{ mb: 3 }}>
+            ¿Deseas participar en esta convocatoria?
+          </Typography>
+          
+          <Card variant="outlined" sx={{ mb: 2, borderColor: '#800020' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ color: '#800020' }}>
+                📋 Datos del Atleta
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Nombre:</strong> {user?.nombre} {user?.apellidopa} {user?.apellidoma}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>CURP:</strong> {user?.curp}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Club:</strong> {user?.clubId ? user.clubId : 'Independiente'}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Sexo:</strong> {user?.sexo}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Fecha de Nacimiento:</strong> {user?.fechaNacimiento ? new Date(user.fechaNacimiento).toLocaleDateString('es-ES') : 'No disponible'}
+              </Typography>
+            </CardContent>
+          </Card>
+          
+          <Card variant="outlined" sx={{ borderColor: '#800020' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ color: '#800020' }}>
+                🏃 Información de la Convocatoria
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Disciplina:</strong> {convocatoriaSeleccionada?.disciplina}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Categoría:</strong> {convocatoriaSeleccionada?.categoria}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Fecha:</strong> {convocatoriaSeleccionada?.fecha ? new Date(convocatoriaSeleccionada.fecha).toLocaleDateString('es-ES') : 'No disponible'}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Lugar:</strong> {convocatoriaSeleccionada?.lugar}
+              </Typography>
+            </CardContent>
+          </Card>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setModalVistaPreviaOpen(false)} sx={{ color: '#800020' }}>
-            Cerrar
+          <Button onClick={() => setModalOpen(false)} color="secondary">
+            Cancelar
           </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Modal de confirmación de inscripción */}
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)}>
-        <DialogTitle>Confirmar Inscripción</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            ¿Deseas inscribirte en la convocatoria <b>{convocatoriaSeleccionada?.titulo}</b>?
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            <b>Nombre:</b> {user.nombre} {user.apellidopa} {user.apellidoma}
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            <b>CURP:</b> {user.curp}
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            <b>Club:</b> {user.clubId ? user.clubId : 'Independiente'}
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            <b>Sexo:</b> {user.sexo}
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            <b>Fecha de Nacimiento:</b> {user.fechaNacimiento}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setModalOpen(false)} color="secondary">Cancelar</Button>
-          <Button onClick={handleConfirmarInscripcion} color="primary" variant="contained" disabled={inscribiendo}>
-            {inscribiendo ? 'Inscribiendo...' : 'Confirmar'}
+          <Button 
+            onClick={handleConfirmarInscripcion} 
+            color="primary" 
+            variant="contained" 
+            disabled={inscribiendo}
+            sx={{ background: '#800020', fontWeight: 'bold' }}
+          >
+            {inscribiendo ? 'Procesando...' : 'Confirmar Participación'}
           </Button>
         </DialogActions>
       </Dialog>

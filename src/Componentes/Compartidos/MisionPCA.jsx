@@ -55,7 +55,11 @@ function MisionPCA() {
     const fetchMision = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/mision`);
-        setMision(response.data);
+        // Solo mostrar la misión más reciente (la primera del array ordenado por fecha)
+        const misionesData = Array.isArray(response.data) ? response.data : [response.data];
+        // Tomar solo la primera misión (la más reciente)
+        const misionActual = misionesData.length > 0 ? [misionesData[0]] : [];
+        setMision(misionActual);
         setLoading(false);
       } catch (err) {
         console.error("Error al obtener la Misión:", err);
