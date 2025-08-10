@@ -81,8 +81,17 @@ function PoliticasPCA() {
   if (error) return <Typography align="center" color="error">{error}</Typography>;
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box
+    <>
+      <style>
+        {`
+          body {
+            margin: 0;
+            padding: 0;
+          }
+        `}
+      </style>
+      <ThemeProvider theme={theme}>
+        <Box
         component="footer"
         sx={{
           py: 3,
@@ -138,7 +147,8 @@ function PoliticasPCA() {
           )}
         </Container>
       </Box>
-    </ThemeProvider>
+      </ThemeProvider>
+    </>
   );
 }
 

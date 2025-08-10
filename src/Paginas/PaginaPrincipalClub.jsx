@@ -213,17 +213,17 @@ const PaginaPrincipalClub = () => {
                 <Box>
                   <Typography variant="h4" color="primary">
                     {estadisticas.totalAtletas || 0}
-                  </Typography>
+                </Typography>
                   <Typography variant="body2" color="textSecondary">
                     Total de Atletas
-                  </Typography>
-                </Box>
+                </Typography>
+              </Box>
               </Box>
             </CardContent>
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ bgcolor: '#f8f9fa' }}>
             <CardContent>
               <Box display="flex" alignItems="center">
@@ -239,9 +239,9 @@ const PaginaPrincipalClub = () => {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+                  </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ bgcolor: '#f8f9fa' }}>
             <CardContent>
               <Box display="flex" alignItems="center">
@@ -257,9 +257,9 @@ const PaginaPrincipalClub = () => {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+                  </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ bgcolor: '#f8f9fa' }}>
             <CardContent>
               <Box display="flex" alignItems="center">
@@ -348,7 +348,7 @@ const PaginaPrincipalClub = () => {
               </Grid>
             )}
           </Paper>
-        </Grid>
+                  </Grid>
 
         {/* Eventos Recientes */}
         <Grid item xs={12} md={6}>
@@ -367,7 +367,7 @@ const PaginaPrincipalClub = () => {
                   />
                 )}
               </Box>
-              <Button
+                    <Button
                 variant="outlined"
                 size="small"
                 onClick={handleVerEventos}
@@ -526,8 +526,8 @@ const PaginaPrincipalClub = () => {
                       </Typography>
                     </CardContent>
                   </Card>
+                  </Grid> 
                 </Grid>
-              </Grid>
             </Box>
           )}
         </DialogContent>
@@ -537,7 +537,7 @@ const PaginaPrincipalClub = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+          </Container>
   );
 };
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { HomeOutlined, LogoutOutlined, UserOutlined, ShopOutlined, TrophyOutlined, NotificationOutlined } from '@ant-design/icons';
+import { Sports as SportsIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../Autenticacion/AuthContext'; // Importa useAuth
@@ -54,6 +55,7 @@ const EncabezadoCliente = () => {
       case 'perfilA':
         navigate('/atleta/perfil');
         break;
+
       case 'cerrarSesion':
         try {
           await fetch('/api/logout', {
@@ -256,6 +258,7 @@ const EncabezadoCliente = () => {
               <UserOutlined style={{ color: '#FFFFFF', marginRight: '8px' }} />
               Perfil
             </li>
+
             <li className={active === 'cerrarSesion' ? 'active' : ''} onClick={() => { handleClick('cerrarSesion'); handleMenuClick('cerrarSesion'); }}>
               <LogoutOutlined style={{ color: '#FFFFFF', marginRight: '8px' }} />
               Cerrar Sesión

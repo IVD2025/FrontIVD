@@ -9,6 +9,7 @@ import { ThemeProvider } from "./Componentes/Temas/ThemeContext";
 import { AuthProvider } from "./Componentes/Autenticacion/AuthContext";
 import Login from "./Componentes/Autenticacion/Login";
 import Registro from "./Componentes/Autenticacion/Registro";
+import RegistroEntrenador from "./Componentes/Autenticacion/RegistroEntrenador";
 import Perfil from "./Componentes/Administrativo/Perfil";
 import Club from "./Componentes/Administrativo/Club";
 import HotelesP from "./Componentes/Publico/HotelesP";
@@ -32,17 +33,28 @@ import ConvocatoriaAtleta from "./Componentes/Atleta/ConvocatoriaAtleta";
 import PerfilAtleta from "./Componentes/Atleta/PerfilAtleta";
 import ResultadosAtleta from "./Componentes/Atleta/ResultadosAtleta";
 import EstadisticasAtleta from "./Componentes/Atleta/EstadisticasAtleta";
+
 import EventosClub from "./Componentes/Club/Eventos";
 import GestionAtletas from "./Componentes/Club/GestionAtletas";
 import PerfilClub from "./Componentes/Club/PerfilClub";
 import Resultados from "./Componentes/Club/Resultados";
 import Convocatoria from "./Componentes/Club/Convocatoria";
+
 import PieDePagina from "./Componentes/Compartidos/PieDePagina";
 import GestionResultados from "./Componentes/Administrativo/GestionResultados";
 import Reportes from "./Componentes/Administrativo/Reportes";
 import ValidacionCategoriaAutomatica from "./Componentes/Administrativo/ValidacionCategoriaAutomatica";
 import GestionClubes from "./Componentes/Administrativo/GestionClubes";
-import GestionarAtletas from "./Componentes/Administrativo/GestionarAtletas";
+import GestionarAtletasAdmin from "./Componentes/Administrativo/GestionarAtletas";
+import PromocionarAtleta from "./Componentes/Administrativo/PromocionarAtleta";
+import PaginaPrincipalEntrenador from "./Paginas/PaginaPrincipalEntrenador";
+import LayoutEntrenador from "./Componentes/Entrenador/LayoutEntrenador";
+import GestionarAtletasEntrenador from "./Componentes/Entrenador/GestionarAtletas";
+import PerfilEntrenador from "./Componentes/Entrenador/PerfilEntrenador";
+
+import EventosEntrenador from "./Componentes/Entrenador/EventosEntrenador";
+import ReportesEntrenador from "./Componentes/Entrenador/Reportes";
+import BuscarClubes from "./Componentes/Entrenador/BuscarClubes";
 
 import RecuperarCorreo from "./Componentes/Autenticacion/RecuperarCorreo";
 import VerificarCodigo from "./Componentes/Autenticacion/VerificarCodigo";
@@ -59,70 +71,86 @@ const App = () => {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <LayoutConEncabezado>
-          <Routes>
-            <Route path="/" element={<PaginaPrincipal />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/registro" element={<Registro />} />
-            <Route path="/hotelesp" element={<HotelesP />} />
-            <Route path="/cuartosp/:idHotel" element={<CuartosPWrapper />} />
-            <Route path="/detalles-habitacion/:idHabitacion" element={<DetallesHabitacion />} />
-            <Route path="/politicaspca" element={<PoliticasPCA />} />
-            <Route path="/terminospca" element={<TerminosPCA />} />
-            <Route path="/visionpca" element={<VisionPCA />} />
-            <Route path="/misionpca" element={<MisionPCA />} />
-            <Route path="/acercade" element={<AcercaDe />} />
+        <Routes>
+          {/* Rutas públicas con LayoutConEncabezado */}
+          <Route path="/" element={<LayoutConEncabezado><PaginaPrincipal /></LayoutConEncabezado>} />
+          <Route path="/login" element={<LayoutConEncabezado><Login /></LayoutConEncabezado>} />
+          <Route path="/registro" element={<LayoutConEncabezado><Registro /></LayoutConEncabezado>} />
+          <Route path="/registro-entrenador" element={<LayoutConEncabezado><RegistroEntrenador /></LayoutConEncabezado>} />
+          <Route path="/hotelesp" element={<LayoutConEncabezado><HotelesP /></LayoutConEncabezado>} />
+          <Route path="/cuartosp/:idHotel" element={<LayoutConEncabezado><CuartosPWrapper /></LayoutConEncabezado>} />
+          <Route path="/detalles-habitacion/:idHabitacion" element={<LayoutConEncabezado><DetallesHabitacion /></LayoutConEncabezado>} />
+          <Route path="/politicaspca" element={<LayoutConEncabezado><PoliticasPCA /></LayoutConEncabezado>} />
+          <Route path="/terminospca" element={<LayoutConEncabezado><TerminosPCA /></LayoutConEncabezado>} />
+          <Route path="/visionpca" element={<LayoutConEncabezado><VisionPCA /></LayoutConEncabezado>} />
+          <Route path="/misionpca" element={<LayoutConEncabezado><MisionPCA /></LayoutConEncabezado>} />
+          <Route path="/acercade" element={<LayoutConEncabezado><AcercaDe /></LayoutConEncabezado>} />
 
-            {/* Rutas para la administración */}
-            <Route path="/administrador" element={<PaginaPrincipalAdministrativa />} />
-            <Route path="/administrador/perfil" element={<Perfil />} />
-            <Route path="/administrador/club" element={<Club />} />
-            <Route path="/administrador/atleta" element={<Atleta />} />
-            <Route path="/administrador/evento" element={<Eventos />} />
-            <Route path="/administrador/resultados" element={<GestionResultados />} />
-            <Route path="/administrador/reportes" element={<Reportes />} />
-            <Route path="/administrador/validacion-categoria" element={<ValidacionCategoriaAutomatica />} />
-            <Route path="/administrador/gestion-clubes" element={<GestionClubes />} />
-            <Route path="/administrador/gestionar-atletas" element={<GestionarAtletas />} />
-            <Route path="/administrador/politicas" element={<Politicas />} />
-            <Route path="/administrador/terminos" element={<Terminos />} />
-            <Route path="/administrador/vision" element={<Vision />} />
-            <Route path="/administrador/mision" element={<Mision />} />
-            <Route path="/administrador/politicaspca" element={<PoliticasPCA />} />
-            <Route path="/administrador/terminospca" element={<TerminosPCA />} />
-            <Route path="/administrador/visionpca" element={<VisionPCA />} />
-            <Route path="/administrador/misionpca" element={<MisionPCA />} />
+          {/* Rutas para la administración con LayoutConEncabezado */}
+          <Route path="/administrador" element={<LayoutConEncabezado><PaginaPrincipalAdministrativa /></LayoutConEncabezado>} />
+          <Route path="/administrador/perfil" element={<LayoutConEncabezado><Perfil /></LayoutConEncabezado>} />
+          <Route path="/administrador/club" element={<LayoutConEncabezado><Club /></LayoutConEncabezado>} />
+          <Route path="/administrador/atleta" element={<LayoutConEncabezado><Atleta /></LayoutConEncabezado>} />
+          <Route path="/administrador/evento" element={<LayoutConEncabezado><Eventos /></LayoutConEncabezado>} />
+          <Route path="/administrador/resultados" element={<LayoutConEncabezado><GestionResultados /></LayoutConEncabezado>} />
+          <Route path="/administrador/reportes" element={<LayoutConEncabezado><Reportes /></LayoutConEncabezado>} />
+          <Route path="/administrador/validacion-categoria" element={<LayoutConEncabezado><ValidacionCategoriaAutomatica /></LayoutConEncabezado>} />
+          <Route path="/administrador/gestion-clubes" element={<LayoutConEncabezado><GestionClubes /></LayoutConEncabezado>} />
+          <Route path="/administrador/gestionar-atletas" element={<LayoutConEncabezado><GestionarAtletasAdmin /></LayoutConEncabezado>} />
+          <Route path="/administrador/promocionar-atleta" element={<LayoutConEncabezado><PromocionarAtleta /></LayoutConEncabezado>} />
+          <Route path="/administrador/politicas" element={<LayoutConEncabezado><Politicas /></LayoutConEncabezado>} />
+          <Route path="/administrador/terminos" element={<LayoutConEncabezado><Terminos /></LayoutConEncabezado>} />
+          <Route path="/administrador/vision" element={<LayoutConEncabezado><Vision /></LayoutConEncabezado>} />
+          <Route path="/administrador/mision" element={<LayoutConEncabezado><Mision /></LayoutConEncabezado>} />
+          <Route path="/administrador/politicaspca" element={<LayoutConEncabezado><PoliticasPCA /></LayoutConEncabezado>} />
+          <Route path="/administrador/terminospca" element={<LayoutConEncabezado><TerminosPCA /></LayoutConEncabezado>} />
+          <Route path="/administrador/visionpca" element={<LayoutConEncabezado><VisionPCA /></LayoutConEncabezado>} />
+          <Route path="/administrador/misionpca" element={<LayoutConEncabezado><MisionPCA /></LayoutConEncabezado>} />
 
-            {/* Rutas para el atleta */}
-            <Route path="/atleta" element={<PaginaPrincipalAtleta />} />
-            <Route path="/atleta/eventos" element={<EventosAtleta />} />
-            <Route path="/atleta/convocatoria" element={<ConvocatoriaAtleta />} />
-            <Route path="/atleta/perfil" element={<PerfilAtleta />} />
-            <Route path="/atleta/resultados" element={<ResultadosAtleta />} />
-            <Route path="/atleta/estadisticas" element={<EstadisticasAtleta />} />
-            <Route path="/atleta/politicaspca" element={<PoliticasPCA />} />
-            <Route path="/atleta/terminospca" element={<TerminosPCA />} />
-            <Route path="/atleta/visionpca" element={<VisionPCA />} />
-            <Route path="/atleta/misionpca" element={<MisionPCA />} />
-            {/* Rutas para el club */}
-            <Route path="/club" element={<PaginaPrincipalClub />} />
-            <Route path="/club/eventos" element={<EventosClub />} />
-            <Route path="/club/gestionAtletas" element={<GestionAtletas />} />
-            <Route path="/club/perfil" element={<PerfilClub />} />  
-            <Route path="/club/resultados" element={<Resultados />} />
-            <Route path="/club/convocatoria" element={<Convocatoria />} />
-            <Route path="/club/politicaspca" element={<PoliticasPCA />} />
-            <Route path="/club/terminospca" element={<TerminosPCA />} />
-            <Route path="/club/visionpca" element={<VisionPCA />} />
-            <Route path="/club/misionpca" element={<MisionPCA />} />
-              {/*Rutas para recuperar contraseña*/}
-            <Route path="/recuperar-correo" element={<RecuperarCorreo />} />
-            <Route path="/verificar-codigo" element={<VerificarCodigo />} />
-            <Route path="/restablecer-password" element={<RestablecerPassword />} />
+          {/* Rutas del Entrenador con LayoutEntrenador (sin LayoutConEncabezado) */}
+          <Route path="/entrenador" element={<LayoutEntrenador><PaginaPrincipalEntrenador /></LayoutEntrenador>} />
+          <Route path="/entrenador/gestionar-atletas" element={<LayoutEntrenador><GestionarAtletasEntrenador /></LayoutEntrenador>} />
+              
+              <Route path="/entrenador/eventos" element={<LayoutEntrenador><EventosEntrenador /></LayoutEntrenador>} />
+                            <Route path="/entrenador/reportes" element={<LayoutEntrenador><ReportesEntrenador /></LayoutEntrenador>} />
+              <Route path="/entrenador/buscar-clubes" element={<LayoutEntrenador><BuscarClubes /></LayoutEntrenador>} />
+              <Route path="/entrenador/perfil" element={<LayoutEntrenador><PerfilEntrenador /></LayoutEntrenador>} />
+          <Route path="/entrenador/politicaspca" element={<LayoutEntrenador><PoliticasPCA /></LayoutEntrenador>} />
+          <Route path="/entrenador/terminospca" element={<LayoutEntrenador><TerminosPCA /></LayoutEntrenador>} />
+          <Route path="/entrenador/visionpca" element={<LayoutEntrenador><VisionPCA /></LayoutEntrenador>} />
+          <Route path="/entrenador/misionpca" element={<LayoutEntrenador><MisionPCA /></LayoutEntrenador>} />
 
-                      
-          </Routes>
-        </LayoutConEncabezado>
+          {/* Rutas para el atleta con LayoutConEncabezado */}
+          <Route path="/atleta" element={<LayoutConEncabezado><PaginaPrincipalAtleta /></LayoutConEncabezado>} />
+          <Route path="/atleta/eventos" element={<LayoutConEncabezado><EventosAtleta /></LayoutConEncabezado>} />
+          <Route path="/atleta/convocatoria" element={<LayoutConEncabezado><ConvocatoriaAtleta /></LayoutConEncabezado>} />
+          <Route path="/atleta/perfil" element={<LayoutConEncabezado><PerfilAtleta /></LayoutConEncabezado>} />
+          <Route path="/atleta/resultados" element={<LayoutConEncabezado><ResultadosAtleta /></LayoutConEncabezado>} />
+          <Route path="/atleta/estadisticas" element={<LayoutConEncabezado><EstadisticasAtleta /></LayoutConEncabezado>} />
+
+          <Route path="/atleta/politicaspca" element={<LayoutConEncabezado><PoliticasPCA /></LayoutConEncabezado>} />
+          <Route path="/atleta/terminospca" element={<LayoutConEncabezado><TerminosPCA /></LayoutConEncabezado>} />
+          <Route path="/atleta/visionpca" element={<LayoutConEncabezado><VisionPCA /></LayoutConEncabezado>} />
+          <Route path="/atleta/misionpca" element={<LayoutConEncabezado><MisionPCA /></LayoutConEncabezado>} />
+
+          {/* Rutas para el club con LayoutConEncabezado */}
+          <Route path="/club" element={<LayoutConEncabezado><PaginaPrincipalClub /></LayoutConEncabezado>} />
+          <Route path="/club/eventos" element={<LayoutConEncabezado><EventosClub /></LayoutConEncabezado>} />
+          <Route path="/club/gestionAtletas" element={<LayoutConEncabezado><GestionAtletas /></LayoutConEncabezado>} />
+          <Route path="/club/perfil" element={<LayoutConEncabezado><PerfilClub /></LayoutConEncabezado>} />  
+          <Route path="/club/resultados" element={<LayoutConEncabezado><Resultados /></LayoutConEncabezado>} />
+          <Route path="/club/convocatoria" element={<LayoutConEncabezado><Convocatoria /></LayoutConEncabezado>} />
+
+          <Route path="/club/politicaspca" element={<LayoutConEncabezado><PoliticasPCA /></LayoutConEncabezado>} />
+          <Route path="/club/terminospca" element={<LayoutConEncabezado><TerminosPCA /></LayoutConEncabezado>} />
+          <Route path="/club/visionpca" element={<LayoutConEncabezado><VisionPCA /></LayoutConEncabezado>} />
+          <Route path="/club/misionpca" element={<LayoutConEncabezado><MisionPCA /></LayoutConEncabezado>} />
+
+          {/* Rutas para recuperar contraseña con LayoutConEncabezado */}
+          <Route path="/recuperar-correo" element={<LayoutConEncabezado><RecuperarCorreo /></LayoutConEncabezado>} />
+          <Route path="/verificar-codigo" element={<LayoutConEncabezado><VerificarCodigo /></LayoutConEncabezado>} />
+          <Route path="/restablecer-password" element={<LayoutConEncabezado><RestablecerPassword /></LayoutConEncabezado>} />
+        </Routes>
       </ThemeProvider>
     </AuthProvider>
   );

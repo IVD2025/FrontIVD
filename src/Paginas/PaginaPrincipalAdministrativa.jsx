@@ -190,8 +190,8 @@ const PaginaPrincipalAdministrativa = () => {
       <Container maxWidth="xl">
         {/* Header */}
         <Typography variant="h4" align="center" gutterBottom sx={{ color: '#800020', fontWeight: 'bold', mb: 4 }}>
-          Panel Administrativo
-        </Typography>
+                Panel Administrativo
+              </Typography>
 
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
@@ -299,8 +299,8 @@ const PaginaPrincipalAdministrativa = () => {
                      </Typography>
                      <Typography variant="caption" sx={{ opacity: 0.8 }}>
                        Marcas y tiempos
-                     </Typography>
-                   </Box>
+              </Typography>
+            </Box>
                    <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
                      <TrophyIcon />
                    </Avatar>
@@ -321,7 +321,7 @@ const PaginaPrincipalAdministrativa = () => {
         </Grid>
 
         {/* Actividad Reciente */}
-        <Grid container spacing={3}>
+            <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
@@ -500,7 +500,7 @@ const PaginaPrincipalAdministrativa = () => {
 
            <Grid item xs={12} md={6}>
              <Card sx={{ height: '100%' }}>
-               <CardContent>
+                    <CardContent>
                  <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center' }}>
                    <AssessmentIcon sx={{ mr: 1 }} />
                    Ver Reportes
@@ -518,12 +518,12 @@ const PaginaPrincipalAdministrativa = () => {
                    </Avatar>
                    <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold', mb: 1 }}>
                      Análisis y Estadísticas
-                   </Typography>
+                      </Typography>
                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 300 }}>
                      Accede a reportes detallados, estadísticas del sistema y análisis de rendimiento
-                   </Typography>
-                   <Button
-                     variant="contained"
+                      </Typography>
+                      <Button
+                        variant="contained"
                      startIcon={<AssessmentIcon />}
                      onClick={() => handleQuickAction('reportes')}
                      sx={{
@@ -538,14 +538,14 @@ const PaginaPrincipalAdministrativa = () => {
                      }}
                    >
                      Ver  Reportes
-                   </Button>
+                      </Button>
                  </Box>
-               </CardContent>
-             </Card>
-           </Grid>
-        </Grid>
-      </Container>
-    </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+            </Grid>
+        </Container>
+      </Box>
   );
 };
 

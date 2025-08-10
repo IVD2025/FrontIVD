@@ -198,8 +198,8 @@ const Eventos = () => {
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
+            {error}
+          </Alert>
       )}
 
       <Paper elevation={3} sx={{ p: 4, borderRadius: '12px', background: '#FFFFFF', boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)' }}>
@@ -217,22 +217,22 @@ const Eventos = () => {
               />
             )}
           </Box>
-          <Button
+        <Button
             variant="outlined"
             startIcon={<GroupIcon />}
             onClick={handleAbrirModalAtletas}
-            sx={{ 
+          sx={{
               color: '#800020', 
               borderColor: '#800020',
-              '&:hover': { 
+            '&:hover': {
                 backgroundColor: '#800020',
                 color: 'white'
               }
             }}
           >
             Gestionar Atletas del Club
-          </Button>
-        </Box>
+        </Button>
+      </Box>
 
         {eventos.length === 0 ? (
           <Alert severity="info">
@@ -244,7 +244,7 @@ const Eventos = () => {
               <Grid item xs={12} sm={6} md={4} key={evento._id}>
                 <Card 
                   variant="outlined" 
-                  sx={{ 
+            sx={{
                     borderColor: '#800020',
                     height: '100%',
                     '&:hover': { 
@@ -262,7 +262,7 @@ const Eventos = () => {
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#800020' }}>
                           {evento.titulo}
-                        </Typography>
+            </Typography>
                         <Chip 
                           label={obtenerTextoEstado(evento.estado)} 
                           color={obtenerColorEstado(evento.estado)}
@@ -302,15 +302,15 @@ const Eventos = () => {
                       </Box>
                     )}
 
-                    <Button
+              <Button
                       variant="outlined"
                       size="small"
                       startIcon={<VisibilityIcon />}
                       onClick={() => handleVerEvento(evento)}
-                      sx={{ 
+                sx={{
                         color: '#800020', 
                         borderColor: '#800020',
-                        '&:hover': { 
+                  '&:hover': {
                           backgroundColor: '#800020',
                           color: 'white'
                         }
@@ -318,7 +318,7 @@ const Eventos = () => {
                       fullWidth
                     >
                       Ver Detalles
-                    </Button>
+              </Button>
                   </CardContent>
                 </Card>
               </Grid>
@@ -445,7 +445,7 @@ const Eventos = () => {
               <Typography variant="h6" gutterBottom>
                 Atletas del Club ({atletasClub.length})
               </Typography>
-              <List>
+            <List>
                 {atletasClub.map((atleta) => (
                   <ListItem key={atleta._id}>
                     <ListItemAvatar>
@@ -453,7 +453,7 @@ const Eventos = () => {
                         {atleta.nombre?.charAt(0)}
                       </Avatar>
                     </ListItemAvatar>
-                    <ListItemText
+                  <ListItemText
                       primary={`${atleta.nombre} ${atleta.apellidopa} ${atleta.apellidoma}`}
                       secondary={`Edad: ${calcularEdad(atleta.fechaNacimiento)} años • ${atleta.sexo}`}
                     />
@@ -465,14 +465,14 @@ const Eventos = () => {
                     >
                       Desasociar
                     </Button>
-                  </ListItem>
-                ))}
+                </ListItem>
+              ))}
                 {atletasClub.length === 0 && (
                   <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
                     No hay atletas asociados a este club
                   </Typography>
                 )}
-              </List>
+            </List>
             </Grid>
             
             <Grid item xs={12} md={6}>

@@ -504,6 +504,7 @@ function Registro() {
                   >
                     <MenuItem value="atleta">Atleta</MenuItem>
                     <MenuItem value="club">Club</MenuItem>
+                    <MenuItem value="entrenador">Entrenador</MenuItem>
                   </Select>
                   {formErrors.rol && (
                     <Typography color="error" variant="caption">

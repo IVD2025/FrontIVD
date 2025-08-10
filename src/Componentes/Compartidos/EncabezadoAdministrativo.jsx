@@ -78,6 +78,9 @@ const EncabezadoAdministrativo = () => {
       case 'gestionClubes':
         navigate('/administrador/gestion-clubes');
         break;
+      case 'promocionarAtleta':
+        navigate('/administrador/promocionar-atleta');
+        break;
       case 'Eventos':
         navigate('/administrador/evento');
         break;
@@ -346,6 +349,7 @@ const EncabezadoAdministrativo = () => {
                 <ul className="dropdown-menu">
                   <li onClick={() => { handleClick('gestionarAtletas'); handleMenuClick('gestionarAtletas'); }}>Gestionar Atletas</li>
                   <li onClick={() => { handleClick('gestionClubes'); handleMenuClick('gestionClubes'); }}>Gestionar Clubes</li>
+                  <li onClick={() => { handleClick('promocionarAtleta'); handleMenuClick('promocionarAtleta'); }}>Gestionar Entrenadores</li>
                 </ul>
               )}
             </li>

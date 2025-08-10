@@ -64,6 +64,9 @@ function Login() {
           case 'club':
             ruta = '/club';
             break;
+          case 'entrenador':
+            ruta = '/entrenador';
+            break;
           case 'administrador':
             ruta = '/administrador';
             break;
@@ -221,6 +224,7 @@ function Login() {
               <Select value={rol} onChange={e => setRol(e.target.value)} label="Rol" sx={{ fontFamily: "'Arial', 'Helvetica', sans-serif", color: '#7A4069' }}>
                 <MenuItem value="atleta">Atleta</MenuItem>
                 <MenuItem value="club">Club</MenuItem>
+                <MenuItem value="entrenador">Entrenador</MenuItem>
                 <MenuItem value="administrador">Administrador</MenuItem>
               </Select>
             </FormControl>
@@ -276,6 +280,7 @@ function Login() {
               ¿Olvidaste tu contraseña?
             </Link>
             <Link to="/registro" style={estilos.enlace}>Regístrate</Link>
+            <Link to="/registro-entrenador" style={estilos.enlace}>Registrar Entrenador</Link>
           </form>
         </div>
       </div>
