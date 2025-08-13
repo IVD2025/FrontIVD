@@ -13,6 +13,7 @@ import { Sports as SportsIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../Autenticacion/AuthContext'; // Ajusta la ruta
+import Swal from 'sweetalert2';
 
 const EncabezadoClub = () => {
   const { user, logout } = useAuth(); // Integración con autenticación
@@ -68,18 +69,47 @@ const EncabezadoClub = () => {
         break;
 
       case 'cerrarSesion':
-        try {
-          await fetch('/api/logout', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-          });
-          localStorage.removeItem('token');
-          sessionStorage.removeItem('token');
-          logout(); // Llama al logout del contexto
-          navigate('/');
-        } catch (error) {
-          console.error('Error al cerrar sesión:', error);
+        const result = await Swal.fire({
+          title: '¿Confirmar cierre de sesión?',
+          text: '¿Estás seguro de que deseas cerrar sesión?',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#800020',
+          cancelButtonColor: '#7A4069',
+          confirmButtonText: 'Sí, cerrar sesión',
+          cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+          try {
+            // Primero hacer logout del contexto para limpiar el estado inmediatamente
+            logout();
+            
+            // Luego limpiar el almacenamiento (usar sessionStorage para ser consistente con AuthContext)
+            sessionStorage.removeItem('user');
+            sessionStorage.removeItem('token');
+            
+            // Finalmente intentar hacer logout del servidor
+            try {
+              await fetch('/api/logout', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              });
+            } catch (serverError) {
+              console.log('Error del servidor al cerrar sesión (no crítico):', serverError);
+            }
+            
+            // Redirigir inmediatamente
+            navigate('/login', { replace: true });
+          } catch (error) {
+            console.error('Error al cerrar sesión:', error);
+            // Asegurar que el logout se complete incluso si hay error
+            logout();
+            navigate('/login', { replace: true });
+          }
         }
         break;
       default:
@@ -159,6 +189,7 @@ const EncabezadoClub = () => {
           gap: 8px;
           color: #FFFFFF; /* Blanco */
           transition: background-color 0.3s ease;
+          font-family: 'Arial', 'Helvetica', sans-serif; /* Tipografía explícita */
         }
 
         .menu ul li:hover {

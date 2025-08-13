@@ -22,7 +22,16 @@ import {
   CircularProgress,
   Alert,
   IconButton,
-  Badge
+  Badge,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -38,7 +47,7 @@ import {
   Visibility as ViewIcon,
   Add as AddIcon,
   CheckCircle as CheckIcon,
-
+  Close as CloseIcon
 } from '@mui/icons-material';
 
 const PaginaPrincipalAtleta = () => {
@@ -49,6 +58,7 @@ const PaginaPrincipalAtleta = () => {
   const [clubesDisponibles, setClubesDisponibles] = useState([]);
   const [eventosProximos, setEventosProximos] = useState([]);
   const [eventosParticipacion, setEventosParticipacion] = useState([]);
+  const [modalClubesOpen, setModalClubesOpen] = useState(false);
 
   const [estadisticas, setEstadisticas] = useState({
     totalEventos: 0,
@@ -123,8 +133,6 @@ const PaginaPrincipalAtleta = () => {
         setEventosParticipacion([]);
       }
 
-
-
       // Las estadísticas se calcularán automáticamente con useEffect
 
     } catch (error) {
@@ -182,38 +190,12 @@ const PaginaPrincipalAtleta = () => {
     }
   };
 
-  const handleInscribirseEvento = async (evento) => {
-    try {
-      const userId = user._id || user.id;
-      await axios.post('http://localhost:5000/api/eventos/inscripciones', {
-        eventoId: evento._id,
-        atletaId: userId,
-        datosAtleta: {
-          nombreCompleto: `${atletaData.nombre} ${atletaData.apellidopa} ${atletaData.apellidoma}`,
-          edad: calcularEdad(atletaData.fechaNacimiento),
-          genero: atletaData.sexo
-        }
-      });
+  const handleVerClubes = () => {
+    setModalClubesOpen(true);
+  };
 
-      Swal.fire({
-        icon: 'success',
-        title: '¡Inscripción Exitosa!',
-        text: `Te has inscrito al evento "${evento.titulo}"`,
-        confirmButtonColor: '#800020'
-      });
-
-      // Recargar datos
-      cargarDatosAtleta();
-
-    } catch (error) {
-      console.error('Error al inscribirse:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.response?.data?.message || 'Error al inscribirse al evento',
-        confirmButtonColor: '#800020'
-      });
-    }
+  const handleCerrarModalClubes = () => {
+    setModalClubesOpen(false);
   };
 
   if (loading) {
@@ -269,39 +251,6 @@ const PaginaPrincipalAtleta = () => {
           <Typography variant="h6" sx={{ color: '#7A4069', mb: 3 }}>
             Tu centro de control deportivo personal
           </Typography>
-          
-          {/* Botón de prueba para verificar conexión */}
-          <Button 
-            variant="outlined" 
-            onClick={async () => {
-              try {
-                const userId = user._id || user.id;
-                const response = await axios.get(`http://localhost:5000/api/registros/atleta/${userId}`);
-                console.log('Test de conexión exitoso:', response.data);
-                Swal.fire({
-                  icon: 'info',
-                  title: 'Test de Conexión',
-                  text: 'Conexión exitosa al servidor',
-                  html: `
-                    <p><strong>Usuario ID:</strong> ${userId}</p>
-                    <p><strong>Nombre:</strong> ${response.data?.nombre || 'N/A'}</p>
-                    <p><strong>Rol:</strong> ${response.data?.rol || 'N/A'}</p>
-                    <p><strong>Club Asignado:</strong> ${response.data?.clubId ? 'Sí' : 'No'}</p>
-                  `
-                });
-              } catch (error) {
-                console.error('Error en test:', error);
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Error de Conexión',
-                  text: error.response?.data?.error || error.message
-                });
-              }
-            }}
-            sx={{ mb: 2 }}
-          >
-            🔧 Test de Conexión
-          </Button>
         </Box>
 
         {/* Estadísticas rápidas */}
@@ -378,7 +327,7 @@ const PaginaPrincipalAtleta = () => {
                   </Typography>
                 ) : (
                   <List>
-                    {clubesDisponibles.map((club, index) => (
+                    {clubesDisponibles.slice(0, 3).map((club, index) => (
                       <React.Fragment key={club._id}>
                         <ListItem>
                           <ListItemAvatar>
@@ -408,23 +357,28 @@ const PaginaPrincipalAtleta = () => {
                               </Box>
                             }
                           />
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<ViewIcon />}
-                            sx={{ 
-                              borderColor: '#800020', 
-                              color: '#800020',
-                              '&:hover': { borderColor: '#600018', backgroundColor: '#F5E8C7' }
-                            }}
-                          >
-                            Ver
-                          </Button>
                         </ListItem>
-                        {index < clubesDisponibles.length - 1 && <Divider />}
+                        {index < Math.min(3, clubesDisponibles.length) - 1 && <Divider />}
                       </React.Fragment>
                     ))}
                   </List>
+                )}
+                
+                {clubesDisponibles.length > 0 && (
+                  <Box sx={{ textAlign: 'center', mt: 2 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={handleVerClubes}
+                      startIcon={<ViewIcon />}
+                      sx={{ 
+                        borderColor: '#800020', 
+                        color: '#800020',
+                        '&:hover': { borderColor: '#600018', backgroundColor: '#F5E8C7' }
+                      }}
+                    >
+                      Ver Todos los Clubes
+                    </Button>
+                  </Box>
                 )}
               </CardContent>
             </Card>
@@ -481,19 +435,6 @@ const PaginaPrincipalAtleta = () => {
                               </Box>
                             }
                           />
-                          <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleInscribirseEvento(evento)}
-                            disabled={!evento.estado}
-                            sx={{ 
-                              bgcolor: '#800020',
-                              '&:hover': { bgcolor: '#600018' }
-                            }}
-                          >
-                            Inscribirse
-                          </Button>
                         </ListItem>
                         {index < eventosProximos.length - 1 && <Divider />}
                       </React.Fragment>
@@ -573,55 +514,72 @@ const PaginaPrincipalAtleta = () => {
               </CardContent>
             </Card>
           </Grid>
-
-
         </Grid>
 
-        {/* Acciones Rápidas */}
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h5" sx={{ color: '#800020', fontWeight: 'bold', mb: 3, textAlign: 'center' }}>
-            🚀 Acciones Rápidas
-          </Typography>
-          <Grid container spacing={2} justifyContent="center">
-            <Grid item>
-              <Button
-                variant="contained"
-                startIcon={<EventIcon />}
-                sx={{ 
-                  bgcolor: '#800020',
-                  '&:hover': { bgcolor: '#600018' }
-                }}
-              >
-                Ver Todos los Eventos
-              </Button>
-            </Grid>
-            <Grid item>
-              <Button
-                variant="contained"
-                startIcon={<GroupIcon />}
-                sx={{ 
-                  bgcolor: '#7A4069',
-                  '&:hover': { bgcolor: '#5A3049' }
-                }}
-              >
-                Explorar Clubes
-              </Button>
-            </Grid>
-
-            <Grid item>
-              <Button
-                variant="contained"
-                startIcon={<TrendingUpIcon />}
-                sx={{ 
-                  bgcolor: '#1976D2',
-                  '&:hover': { bgcolor: '#1565C0' }
-                }}
-              >
-                Ver Estadísticas
-              </Button>
-            </Grid>
-          </Grid>
-        </Box>
+        {/* Modal de Clubes Disponibles */}
+        <Dialog 
+          open={modalClubesOpen} 
+          onClose={handleCerrarModalClubes} 
+          maxWidth="lg" 
+          fullWidth
+        >
+          <DialogTitle>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
+                🏢 Clubes Disponibles
+              </Typography>
+              <IconButton onClick={handleCerrarModalClubes} color="primary">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            {clubesDisponibles.length === 0 ? (
+              <Typography variant="body2" sx={{ textAlign: 'center', p: 3, color: '#7A4069' }}>
+                No hay clubes disponibles en este momento.
+              </Typography>
+            ) : (
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Club</strong></TableCell>
+                    <TableCell><strong>Estado</strong></TableCell>
+                    <TableCell><strong>Teléfono</strong></TableCell>
+                    <TableCell><strong>Descripción</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {clubesDisponibles.map((club) => (
+                    <TableRow key={club._id}>
+                      <TableCell>
+                        <Box display="flex" alignItems="center">
+                          <Avatar sx={{ bgcolor: '#7A4069', mr: 2 }}>
+                            <SchoolIcon />
+                          </Avatar>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#800020' }}>
+                            {club.nombre}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>{club.estadoNacimiento}</TableCell>
+                      <TableCell>{club.telefono}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ maxWidth: 300 }}>
+                          {club.descripcion || 'Sin descripción disponible'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCerrarModalClubes} sx={{ color: '#7A4069' }}>
+              Cerrar
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </>
   );

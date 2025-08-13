@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { AppstoreOutlined, LogoutOutlined, HomeOutlined, FileTextOutlined, TeamOutlined, ShopOutlined, ApartmentOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, LogoutOutlined, HomeOutlined, FileTextOutlined, TeamOutlined, ShopOutlined, ApartmentOutlined, TrophyOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../Autenticacion/AuthContext'; // Importa useAuth
+import Swal from 'sweetalert2';
 
 const EncabezadoAdministrativo = () => {
   const [active, setActive] = useState('inicio');
@@ -46,7 +47,7 @@ const EncabezadoAdministrativo = () => {
     setOpenDropdown(openDropdown === menu ? null : menu);
   };
 
-  const handleMenuClick = (key) => {
+  const handleMenuClick = async (key) => {
     switch (key) {
       case 'politicas':
         navigate('/administrador/politicas');
@@ -84,8 +85,53 @@ const EncabezadoAdministrativo = () => {
       case 'Eventos':
         navigate('/administrador/evento');
         break;
+      case 'resultados':
+        navigate('/administrador/resultados');
+        break;
+      
       case 'cerrarSesion':
-        handleLogout();
+        const result = await Swal.fire({
+          title: '¿Confirmar cierre de sesión?',
+          text: '¿Estás seguro de que deseas cerrar sesión?',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#800020',
+          cancelButtonColor: '#7A4069',
+          confirmButtonText: 'Sí, cerrar sesión',
+          cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+          try {
+            // Primero hacer logout del contexto para limpiar el estado inmediatamente
+            logout();
+            
+            // Luego limpiar el almacenamiento (usar sessionStorage para ser consistente con AuthContext)
+            sessionStorage.removeItem('user');
+            sessionStorage.removeItem('token');
+            
+            // Finalmente intentar hacer logout del servidor
+            try {
+              await fetch('/api/logout', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              });
+            } catch (serverError) {
+              console.log('Error del servidor al cerrar sesión (no crítico):', serverError);
+            }
+            
+            // Redirigir inmediatamente
+            navigate('/login', { replace: true });
+          } catch (error) {
+            console.error('Error al cerrar sesión:', error);
+            // Asegurar que el logout se complete incluso si hay error
+            logout();
+            navigate('/login', { replace: true });
+          }
+        }
         break;
       default:
         console.log('No se reconoce la acción del menú');
@@ -357,6 +403,11 @@ const EncabezadoAdministrativo = () => {
               <ApartmentOutlined style={{ color: '#FFFFFF', marginRight: '8px' }} />
               Gestión de eventos
             </li>
+            <li onClick={() => handleMenuClick('resultados')}>
+              <TrophyOutlined style={{ color: '#FFFFFF', marginRight: '8px' }} />
+              Gestión de Resultados
+            </li>
+
             <li onClick={() => handleMenuClick('cerrarSesion')}>
               <LogoutOutlined style={{ color: '#FFFFFF', marginRight: '8px' }} />
               Cerrar Sesión

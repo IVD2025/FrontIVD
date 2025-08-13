@@ -21,6 +21,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import { useAuth } from '../Autenticacion/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 const PerfilAtleta = () => {
   const { user, logout } = useAuth();
@@ -37,10 +38,13 @@ const PerfilAtleta = () => {
   const [mensaje, setMensaje] = useState('');
 
   useEffect(() => {
+    console.log('PerfilAtleta useEffect triggered, user:', user);
     if (!user || !user.id) {
+      console.log('No user or user.id, redirecting to login');
       navigate('/login');
       return;
     }
+    console.log('Starting to fetch data for user:', user.id);
     fetchPerfil();
     fetchClubes();
     fetchSolicitud();
@@ -51,10 +55,28 @@ const PerfilAtleta = () => {
     try {
       if (!user?.id) return;
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/registros/atleta/${user.id}`);
-      setPerfil(response.data);
-      setErrorMessage('');
+      console.log('Fetching profile for user ID:', user.id);
+      
+      // Intentar primero con el endpoint de atleta específico
+      let response;
+      try {
+        response = await axios.get(`http://localhost:5000/api/registros/atleta/${user.id}`);
+        console.log('Profile data received:', response.data);
+      } catch (error) {
+        console.log('First endpoint failed, trying general endpoint');
+        // Si falla, intentar con el endpoint general
+        response = await axios.get(`http://localhost:5000/api/registros/${user.id}`);
+        console.log('Profile data from general endpoint:', response.data);
+      }
+      
+      if (response.data) {
+        setPerfil(response.data);
+        setErrorMessage('');
+      } else {
+        setErrorMessage('No se pudieron cargar los datos del perfil.');
+      }
     } catch (error) {
+      console.error('Error al cargar perfil:', error);
       setErrorMessage('Error al cargar el perfil. Intente de nuevo.');
     } finally {
       setLoading(false);
@@ -113,15 +135,32 @@ const PerfilAtleta = () => {
         setErrorMessage('No hay datos de perfil para guardar.');
         return;
       }
+      
       const perfilToSave = {
         ...perfil,
         sexo: perfil.sexo === 'Hombre' ? 'masculino' : (perfil.sexo === 'Mujer' ? 'femenino' : perfil.sexo),
       };
-      await axios.put(`http://localhost:5000/api/registros/atleta/${user.id}`, perfilToSave);
+      
+      console.log('Saving profile data:', perfilToSave);
+      
+      // Intentar primero con el endpoint de atleta específico
+      try {
+        await axios.put(`http://localhost:5000/api/registros/atleta/${user.id}`, perfilToSave);
+        console.log('Profile updated successfully');
+      } catch (error) {
+        console.log('First endpoint failed, trying general endpoint');
+        // Si falla, intentar con el endpoint general
+        await axios.put(`http://localhost:5000/api/registros/${user.id}`, perfilToSave);
+        console.log('Profile updated from general endpoint');
+      }
+      
       setEditMode(false);
       setErrorMessage('Perfil actualizado exitosamente.');
+      
+      // Recargar el perfil para mostrar los cambios
       fetchPerfil();
     } catch (error) {
+      console.error('Error al actualizar perfil:', error);
       setErrorMessage('Error al actualizar el perfil. Intente de nuevo.');
     }
   };
@@ -168,17 +207,44 @@ const PerfilAtleta = () => {
     try {
       if (!user?.id) return;
       
-      // Salir automáticamente del club actual
-      await axios.put(`http://localhost:5000/api/registros/atleta/${user.id}`, {
-        clubId: null
+      // Mostrar confirmación antes de salir del club
+      const result = await Swal.fire({
+        title: '¿Confirmar salida del club?',
+        text: '¿Estás seguro de que deseas salir del club? Esto te convertirá en atleta independiente.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#800020',
+        cancelButtonColor: '#7A4069',
+        confirmButtonText: 'Sí, salir del club',
+        cancelButtonText: 'Cancelar'
       });
       
-      setErrorMessage('Has salido del club exitosamente. Ahora puedes unirte a otro club o permanecer independiente.');
-      
-      // Actualizar el perfil
-      fetchPerfil();
-      fetchSolicitud();
+      if (result.isConfirmed) {
+        // Salir del club actual
+        try {
+          await axios.put(`http://localhost:5000/api/registros/atleta/${user.id}`, {
+            clubId: null,
+            fechaIngresoClub: null
+          });
+          console.log('Successfully left club');
+        } catch (error) {
+          console.log('First endpoint failed, trying general endpoint');
+          // Si falla, intentar con el endpoint general
+          await axios.put(`http://localhost:5000/api/registros/${user.id}`, {
+            clubId: null,
+            fechaIngresoClub: null
+          });
+          console.log('Left club from general endpoint');
+        }
+        
+        setErrorMessage('Has salido del club exitosamente. Ahora puedes unirte a otro club o permanecer independiente.');
+        
+        // Actualizar el perfil
+        fetchPerfil();
+        fetchSolicitud();
+      }
     } catch (error) {
+      console.error('Error al salir del club:', error);
       setErrorMessage('Error al salir del club. Intente de nuevo.');
     }
   };
@@ -187,16 +253,42 @@ const PerfilAtleta = () => {
     setErrorMessage('');
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  if (loading || !perfil) {
+  if (loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2 }}>
+          <CircularProgress size={60} sx={{ color: '#800020', mb: 2 }} />
+          <Typography variant="h6" sx={{ color: '#800020' }}>
+            Cargando perfil...
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#7A4069', mt: 1 }}>
+            ID de usuario: {user?.id || 'No disponible'}
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
+
+  if (!perfil) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh' }}>
+        <Box sx={{ textAlign: 'center', mt: 2 }}>
+          <Typography variant="h5" sx={{ color: '#800020', mb: 2 }}>
+            No se pudieron cargar los datos del perfil
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#7A4069', mb: 3 }}>
+            ID de usuario: {user?.id || 'No disponible'}
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={fetchPerfil}
+            sx={{ 
+              bgcolor: '#800020',
+              '&:hover': { bgcolor: '#600018' }
+            }}
+          >
+            🔄 Intentar de Nuevo
+          </Button>
         </Box>
       </Container>
     );
@@ -220,6 +312,22 @@ const PerfilAtleta = () => {
             }
           >
             {errorMessage}
+          </Alert>
+        </Box>
+      )}
+
+      {mensaje && (
+        <Box sx={{ mb: 2 }}>
+          <Alert 
+            severity="info"
+            onClose={() => setMensaje('')}
+            action={
+              <Button color="inherit" size="small" onClick={() => setMensaje('')}>
+                Entendido
+              </Button>
+            }
+          >
+            {mensaje}
           </Alert>
         </Box>
       )}
@@ -362,16 +470,20 @@ const PerfilAtleta = () => {
                   try {
                     if (!user?.id) return;
                     limpiarMensaje(); // Limpiar mensajes anteriores
+                    setMensaje(''); // Limpiar mensaje de info
+                    
                     await axios.post('http://localhost:5000/api/registros/solicitudes-club', {
                       atletaId: user.id,
                       clubId: clubSeleccionado,
                       tipo: 'asociar',
                     });
-                    setErrorMessage('Solicitud enviada correctamente. Espera la respuesta del club.');
+                    
+                    setMensaje('Solicitud enviada correctamente. Espera la respuesta del club.');
                     setClubSeleccionado('');
                     fetchSolicitud();
                   } catch (error) {
-                    setErrorMessage(error.response?.data?.error || 'Error al enviar solicitud');
+                    console.error('Error al enviar solicitud:', error);
+                    setMensaje(error.response?.data?.error || 'Error al enviar solicitud');
                   }
                 }}
                 disabled={!clubSeleccionado}
@@ -383,7 +495,7 @@ const PerfilAtleta = () => {
           )}
         </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 3 }}>
           {editMode ? (
             <Button
               variant="contained"
@@ -403,13 +515,6 @@ const PerfilAtleta = () => {
               Editar
             </Button>
           )}
-          <Button
-            variant="contained"
-            onClick={handleLogout}
-            sx={{ background: '#D32F2F', fontWeight: 'bold' }}
-          >
-            Cerrar Sesión
-          </Button>
         </Box>
       </Paper>
     </Container>

@@ -151,7 +151,7 @@ const PerfilClub = () => {
   return (
     <Container maxWidth="md" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh' }}>
       <Typography variant="h4" align="center" gutterBottom sx={{ color: '#800020', fontWeight: 'bold', mb: 4 }}>
-        👤 Perfil del Club
+        Perfil del Club
       </Typography>
 
       {errorMessage && (

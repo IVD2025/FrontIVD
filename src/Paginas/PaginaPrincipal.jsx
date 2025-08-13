@@ -101,20 +101,17 @@ const theme = createTheme({
 const tarjetaContenido = [
   {
     titulo: '¡Únete a la Revolución Deportiva!',
-    texto: 'El IVD transforma vidas promoviendo inclusión y pasión en cada comunidad de Veracruz con entrenamientos gratuitos y acceso a instalaciones modernas.',
+   texto: 'El Instituto Veracruzano del Deporte, transforma vidas a través de la promoción de la inclusión y la pasión por el deporte en cada comunidad veracruzana. Con programas de entrenamiento gratuito, acceso a instalaciones modernas y eventos que fomentan el desarrollo integral, el Instituto Veracruzano del Deporte invita a todos los veracruzanos a unirse a esta revolución que impulsa el bienestar físico y social, fortaleciendo valores como la disciplina y la perseverancia.',
   },
   {
     titulo: '¡Lidera el Cambio con Nosotros!',
-    texto: 'Impulsamos el deporte con capacitación, infraestructura y competencias estatales, siendo un referente de excelencia para todas las edades.',
+    texto: 'Impulsamos el deporte con capacitación lideramos el cambio impulsando el deporte con capacitaciones especializadas, infraestructura de vanguardia y competencias estatales que posicionan a Veracruz como un referente de excelencia. Colaboramos con asociaciones deportivas y la Universidad Veracruzana para diseñar programas que promueven el deporte popular, estudiantil y de alto rendimiento, invitándote a ser parte de esta transformación que eleva el nivel deportivo en todo el estado.',
   },
   {
     titulo: '¡Vive la Energía del Deporte!',
-    texto: 'Disfruta de eventos como la Olimpiada Nacional y torneos locales que unen familias y promueven disciplina y perseverancia.',
+    texto: 'Vive la energía del deporte con el Instituto a través de eventos emocionantes como los torneos locales y actividades que unen a familias enteras en la promoción de la disciplina y la perseverancia. Desde encuentros amistosos  hasta competencias en disciplinas como carrera de 75 metros, salto de garrocha, lanzamiento de disco y más, cada evento es una oportunidad para disfrutar y fortalecer el espíritu comunitario en Veracruz.',
   },
-  {
-    titulo: '¡Copa Veracruz 2025 Te Espera!',
-    texto: '¡Prepárate para el 01/07/2025! Reúne a los mejores atletas para competir y celebrar el deporte en Veracruz. ¡Regístrate!',
-  },
+ 
 ];
 
 const PaginaPrincipal = () => {

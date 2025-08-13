@@ -214,43 +214,8 @@ const PerfilEntrenador = () => {
       </style>
       <Container maxWidth="lg" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh' }}>
       <Typography variant="h4" align="center" gutterBottom sx={{ color: '#800020', fontWeight: 'bold', mb: 4 }}>
-        👨‍🏫 Perfil del Entrenador
+        Perfil del Entrenador
       </Typography>
-
-      {/* Botón de prueba para verificar conexión */}
-      <Box display="flex" justifyContent="center" mb={3}>
-        <Button 
-          variant="outlined" 
-          onClick={async () => {
-            try {
-              const userId = user._id || user.id;
-              const response = await axios.get(`http://localhost:5000/api/entrenador/perfil/${userId}`);
-              console.log('Test de conexión exitoso:', response.data);
-              Swal.fire({
-                icon: 'info',
-                title: 'Test de Conexión',
-                text: 'Conexión exitosa al servidor',
-                html: `
-                  <p><strong>Usuario ID:</strong> ${userId}</p>
-                  <p><strong>Nombre:</strong> ${response.data.entrenador?.nombre || 'N/A'}</p>
-                  <p><strong>Rol:</strong> ${response.data.entrenador?.rol || 'N/A'}</p>
-                  <p><strong>Club Asignado:</strong> ${response.data.club?.nombre || 'Ninguno'}</p>
-                `
-              });
-            } catch (error) {
-              console.error('Error en test:', error);
-              Swal.fire({
-                icon: 'error',
-                title: 'Error de Conexión',
-                text: error.response?.data?.error || error.message
-              });
-            }
-          }}
-          sx={{ mb: 2 }}
-        >
-          🔧 Test de Conexión
-        </Button>
-      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>

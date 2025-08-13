@@ -9,14 +9,29 @@ export const AuthProvider = ({ children }) => {
   });
 
   const login = (username, tipo, userData) => {
+    // Validar que userData tenga las propiedades necesarias
+    if (!userData || !userData.id || !userData.nombre) {
+      console.error('Datos de usuario incompletos:', userData);
+      return false;
+    }
+    
     const authData = { username, tipo, ...userData };
     setUser(authData);
-    sessionStorage.setItem('user', JSON.stringify(authData)); 
+    sessionStorage.setItem('user', JSON.stringify(authData));
+    return true;
+  };
+
+  const isAuthenticated = () => {
+    return user && user.id && user.nombre;
   };
 
   const logout = () => {
     setUser(null);
     sessionStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    // Limpiar también localStorage por si acaso hay datos ahí
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   useEffect(() => {
@@ -32,7 +47,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );

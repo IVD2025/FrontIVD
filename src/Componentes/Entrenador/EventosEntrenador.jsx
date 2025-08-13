@@ -36,8 +36,10 @@ const EventosEntrenador = () => {
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [modalParticipantesOpen, setModalParticipantesOpen] = useState(false);
   const [modalEventoOpen, setModalEventoOpen] = useState(false);
+  const [modalConvocatoriasOpen, setModalConvocatoriasOpen] = useState(false);
   const [participantes, setParticipantes] = useState([]);
   const [eventoSeleccionado, setEventoSeleccionado] = useState(null);
+  const [eventoConvocatorias, setEventoConvocatorias] = useState(null);
   const [loadingParticipantes, setLoadingParticipantes] = useState(false);
 
   // Cargar eventos al montar el componente
@@ -62,29 +64,43 @@ const EventosEntrenador = () => {
     }
   };
 
-  const handleVerParticipantes = async (evento) => {
+  const handleVerConvocatorias = (evento) => {
+    setEventoConvocatorias(evento);
+    setModalConvocatoriasOpen(true);
+  };
+
+  const handleVerParticipantesConvocatoria = async (evento, convocatoria, index) => {
+    setEventoSeleccionado({ ...evento, convocatoriaSeleccionada: convocatoria, convocatoriaIndex: index });
+    setModalParticipantesOpen(true);
+    setLoadingParticipantes(true);
     try {
-      setEventoSeleccionado(evento);
-      setLoadingParticipantes(true);
-      setModalParticipantesOpen(true);
-      
-      const response = await axios.get(`http://localhost:5000/api/eventos/${evento._id}/participantes`);
-      setParticipantes(response.data || []);
+      const response = await axios.get(`http://localhost:5000/api/eventos/inscripciones?eventoId=${evento._id}&convocatoriaIndex=${index}`);
+      setParticipantes(response.data);
     } catch (error) {
-      console.error('Error al cargar participantes:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Error al cargar los participantes'
-      });
+      setParticipantes([]);
     } finally {
       setLoadingParticipantes(false);
     }
   };
 
-  const handleVerEvento = (evento) => {
-    setEventoSeleccionado(evento);
+  const handleVerEventoConvocatoria = (evento, convocatoria, index) => {
+    setEventoSeleccionado({ ...evento, convocatoriaSeleccionada: convocatoria, convocatoriaIndex: index });
     setModalEventoOpen(true);
+  };
+
+  const handleCerrarParticipantes = () => {
+    setModalParticipantesOpen(false);
+    setEventoSeleccionado(null);
+  };
+
+  const handleCerrarEvento = () => {
+    setModalEventoOpen(false);
+    setEventoSeleccionado(null);
+  };
+
+  const handleCerrarConvocatorias = () => {
+    setModalConvocatoriasOpen(false);
+    setEventoConvocatorias(null);
   };
 
   const obtenerColorEstado = (estado) => {
@@ -133,9 +149,8 @@ const EventosEntrenador = () => {
       </style>
       <Container maxWidth="xl" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh' }}>
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <CalendarIcon sx={{ fontSize: 60, color: '#800020', mb: 2 }} />
           <Typography variant="h4" sx={{ color: '#800020', fontWeight: 'bold', mb: 2 }}>
-            📅 Eventos Disponibles
+            Eventos Disponibles
           </Typography>
           <Typography variant="h6" sx={{ color: '#7A4069', mb: 3 }}>
             Revisa los eventos disponibles y sus participantes
@@ -158,16 +173,14 @@ const EventosEntrenador = () => {
             </Typography>
           ) : (
             <Table>
-                             <TableHead>
-                 <TableRow>
-                   <TableCell><strong>Evento</strong></TableCell>
-                   <TableCell><strong>Fecha</strong></TableCell>
-                   <TableCell><strong>Lugar</strong></TableCell>
-                   <TableCell><strong>Disciplina</strong></TableCell>
-                   <TableCell><strong>Categoría</strong></TableCell>
-                   <TableCell><strong>Acciones</strong></TableCell>
-                 </TableRow>
-               </TableHead>
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>Evento</strong></TableCell>
+                  <TableCell><strong>Fecha</strong></TableCell>
+                  <TableCell><strong>Lugar</strong></TableCell>
+                  <TableCell><strong>Convocatorias</strong></TableCell>
+                </TableRow>
+              </TableHead>
               <TableBody>
                 {eventos.map((evento) => (
                   <TableRow key={evento._id}>
@@ -178,29 +191,23 @@ const EventosEntrenador = () => {
                     </TableCell>
                     <TableCell>{formatearFecha(evento.fecha || evento.createdAt)}</TableCell>
                     <TableCell>{evento.lugar}</TableCell>
-                                         <TableCell>{evento.disciplina}</TableCell>
-                     <TableCell>{evento.categoria}</TableCell>
-                     <TableCell>
-                      <Box display="flex" gap={1}>
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleVerEvento(evento)}
-                          color="primary"
-                          title="Ver detalles del evento"
-                          sx={{ color: '#800020' }}
-                        >
-                          <VisibilityIcon />
-                        </IconButton>
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleVerParticipantes(evento)}
-                          color="secondary"
-                          title="Ver participantes"
-                          sx={{ color: '#7A4069' }}
-                        >
-                          <PeopleIcon />
-                        </IconButton>
-                      </Box>
+                    <TableCell>
+                      <Button
+                        variant="outlined"
+                        onClick={() => handleVerConvocatorias(evento)}
+                        startIcon={<PeopleIcon />}
+                        size="small"
+                        sx={{
+                          color: '#800020',
+                          borderColor: '#800020',
+                          '&:hover': {
+                            borderColor: '#800020',
+                            backgroundColor: 'rgba(128, 0, 32, 0.04)'
+                          }
+                        }}
+                      >
+                        Ver Convocatorias ({evento.convocatorias ? evento.convocatorias.length : 0})
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -209,10 +216,100 @@ const EventosEntrenador = () => {
           )}
         </Paper>
 
+        {/* Modal de Convocatorias */}
+        <Dialog open={modalConvocatoriasOpen} onClose={handleCerrarConvocatorias} maxWidth="lg" fullWidth>
+          <DialogTitle>
+            <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
+              🎯 Convocatorias del Evento: {eventoConvocatorias?.titulo}
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
+            {eventoConvocatorias && eventoConvocatorias.convocatorias ? (
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Disciplina</strong></TableCell>
+                    <TableCell><strong>Categoría</strong></TableCell>
+                    <TableCell><strong>Rango de Edad</strong></TableCell>
+                    <TableCell><strong>Género</strong></TableCell>
+                    <TableCell><strong>Estado</strong></TableCell>
+                    <TableCell><strong>Acciones</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {eventoConvocatorias.convocatorias.map((convocatoria, index) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          {convocatoria.disciplina}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{convocatoria.categoria}</TableCell>
+                      <TableCell>{convocatoria.edadMin} - {convocatoria.edadMax} años</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={convocatoria.genero === 'mixto' ? 'Mixto' : 
+                                 convocatoria.genero === 'masculino' ? 'Masculino' : 'Femenino'} 
+                          color={convocatoria.genero === 'mixto' ? 'default' : 
+                                 convocatoria.genero === 'masculino' ? 'primary' : 'secondary'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={obtenerTextoEstado(eventoConvocatorias.estado)} 
+                          color={obtenerColorEstado(eventoConvocatorias.estado)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" gap={1}>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleVerEventoConvocatoria(eventoConvocatorias, convocatoria, index)}
+                            color="primary"
+                            title="Ver detalles de la convocatoria"
+                            sx={{ color: '#800020' }}
+                          >
+                            <VisibilityIcon />
+                          </IconButton>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleVerParticipantesConvocatoria(eventoConvocatorias, convocatoria, index)}
+                            color="secondary"
+                            title="Ver participantes de esta convocatoria"
+                            sx={{ color: '#7A4069' }}
+                          >
+                            <PeopleIcon />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <Typography variant="body2" sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
+                No hay convocatorias para este evento.
+              </Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCerrarConvocatorias} sx={{ color: '#7A4069' }}>
+              Cerrar
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         {/* Modal de Participantes */}
-        <Dialog open={modalParticipantesOpen} onClose={() => setModalParticipantesOpen(false)} maxWidth="sm" fullWidth>
+        <Dialog open={modalParticipantesOpen} onClose={handleCerrarParticipantes} maxWidth="sm" fullWidth>
           <DialogTitle sx={{ color: '#800020', fontWeight: 'bold' }}>
             👥 Participantes de "{eventoSeleccionado?.titulo}"
+            {eventoSeleccionado?.convocatoriaSeleccionada && (
+              <Typography variant="subtitle2" sx={{ color: '#800020', mt: 1 }}>
+                Convocatoria: {eventoSeleccionado.convocatoriaSeleccionada.disciplina} - {eventoSeleccionado.convocatoriaSeleccionada.categoria}
+              </Typography>
+            )}
           </DialogTitle>
           <DialogContent>
             {loadingParticipantes ? (
@@ -221,7 +318,7 @@ const EventosEntrenador = () => {
               </Box>
             ) : participantes.length === 0 ? (
               <Typography variant="body2" sx={{ textAlign: 'center', p: 2, color: '#7A4069' }}>
-                No hay participantes inscritos en este evento.
+                No hay participantes inscritos en esta convocatoria.
               </Typography>
             ) : (
               <List>
@@ -262,17 +359,22 @@ const EventosEntrenador = () => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setModalParticipantesOpen(false)} sx={{ color: '#7A4069' }}>
+            <Button onClick={handleCerrarParticipantes} sx={{ color: '#7A4069' }}>
               Cerrar
             </Button>
           </DialogActions>
         </Dialog>
 
         {/* Modal de Detalles del Evento */}
-        <Dialog open={modalEventoOpen} onClose={() => setModalEventoOpen(false)} maxWidth="md" fullWidth>
+        <Dialog open={modalEventoOpen} onClose={handleCerrarEvento} maxWidth="md" fullWidth>
           <DialogTitle>
             <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
               📋 Detalles del Evento
+              {eventoSeleccionado?.convocatoriaSeleccionada && (
+                <Typography variant="subtitle2" sx={{ color: '#800020', mt: 1 }}>
+                  Convocatoria: {eventoSeleccionado.convocatoriaSeleccionada.disciplina} - {eventoSeleccionado.convocatoriaSeleccionada.categoria}
+                </Typography>
+              )}
             </Typography>
           </DialogTitle>
           <DialogContent>
@@ -319,18 +421,38 @@ const EventosEntrenador = () => {
                         <Typography variant="h6" gutterBottom sx={{ color: '#800020' }}>
                           🏃 Información Deportiva
                         </Typography>
-                        <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
-                          <strong>Disciplina:</strong> {eventoSeleccionado.disciplina}
-                        </Typography>
-                        <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
-                          <strong>Categoría:</strong> {eventoSeleccionado.categoria}
-                        </Typography>
-                        <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
-                          <strong>Rango de Edad:</strong> {eventoSeleccionado.edadMin} - {eventoSeleccionado.edadMax} años
-                        </Typography>
-                        <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
-                          <strong>Género:</strong> {eventoSeleccionado.genero}
-                        </Typography>
+                        {eventoSeleccionado.convocatoriaSeleccionada ? (
+                          <>
+                            <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
+                              <strong>Disciplina:</strong> {eventoSeleccionado.convocatoriaSeleccionada.disciplina}
+                            </Typography>
+                            <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
+                              <strong>Categoría:</strong> {eventoSeleccionado.convocatoriaSeleccionada.categoria}
+                            </Typography>
+                            <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
+                              <strong>Rango de Edad:</strong> {eventoSeleccionado.convocatoriaSeleccionada.edadMin} - {eventoSeleccionado.convocatoriaSeleccionada.edadMax} años
+                            </Typography>
+                            <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
+                              <strong>Género:</strong> {eventoSeleccionado.convocatoriaSeleccionada.genero === 'mixto' ? 'Mixto' : 
+                                                        eventoSeleccionado.convocatoriaSeleccionada.genero === 'masculino' ? 'Masculino' : 'Femenino'}
+                            </Typography>
+                          </>
+                        ) : (
+                          <>
+                            <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
+                              <strong>Disciplina:</strong> {eventoSeleccionado.disciplina || 'No especificada'}
+                            </Typography>
+                            <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
+                              <strong>Categoría:</strong> {eventoSeleccionado.categoria || 'No especificada'}
+                            </Typography>
+                            <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
+                              <strong>Rango de Edad:</strong> {eventoSeleccionado.edadMin || 'N/A'} - {eventoSeleccionado.edadMax || 'N/A'} años
+                            </Typography>
+                            <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
+                              <strong>Género:</strong> {eventoSeleccionado.genero || 'No especificado'}
+                            </Typography>
+                          </>
+                        )}
                       </CardContent>
                     </Card>
                   </Grid>
@@ -359,6 +481,11 @@ const EventosEntrenador = () => {
                         <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
                           <strong>ID del Evento:</strong> {eventoSeleccionado._id}
                         </Typography>
+                        {eventoSeleccionado.convocatoriaSeleccionada && (
+                          <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
+                            <strong>Índice de la Convocatoria:</strong> {eventoSeleccionado.convocatoriaIndex !== undefined ? eventoSeleccionado.convocatoriaIndex + 1 : 'N/A'}
+                          </Typography>
+                        )}
                         <Typography variant="body2" paragraph sx={{ color: '#7A4069' }}>
                           <strong>Fecha de Creación:</strong> {formatearFecha(eventoSeleccionado.createdAt)}
                         </Typography>
@@ -375,7 +502,7 @@ const EventosEntrenador = () => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setModalEventoOpen(false)} sx={{ color: '#7A4069' }}>
+            <Button onClick={handleCerrarEvento} sx={{ color: '#7A4069' }}>
               Cerrar
             </Button>
           </DialogActions>

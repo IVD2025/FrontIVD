@@ -1,100 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  Container,
-  Typography,
-  Paper,
-  Grid,
-  Card,
-  CardContent,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  CircularProgress,
-  Alert,
-  Chip,
-  Tabs,
-  Tab,
-  Divider
+  Box, Container, Typography, Paper, Grid, Card, CardContent, Button,
+  Alert, CircularProgress, FormControl, InputLabel, Select, MenuItem,
+  TextField, Chip, Table, TableBody, TableCell, TableHead, TableRow,
+  IconButton, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer
-} from 'recharts';
-import { 
-  Download as DownloadIcon,
-  TrendingUp as TrendingUpIcon,
-  People as PeopleIcon,
-  EmojiEvents as EmojiEventsIcon,
-  Speed as SpeedIcon
+  Assessment as AssessmentIcon, Download as DownloadIcon, FilterList as FilterIcon,
+  Visibility as VisibilityIcon, TrendingUp as TrendingUpIcon, People as PeopleIcon,
+  EmojiEvents as EmojiEventsIcon, Group as GroupIcon
 } from '@mui/icons-material';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import axios from 'axios';
 import { useAuth } from '../Autenticacion/AuthContext';
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+import * as XLSX from 'xlsx';
 
 const Reportes = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState(0);
-  
-  // Filtros
-  const [filtroEvento, setFiltroEvento] = useState('');
-  const [filtroDisciplina, setFiltroDisciplina] = useState('');
-  const [filtroCategoria, setFiltroCategoria] = useState('');
-  const [filtroFecha, setFiltroFecha] = useState('todos');
-  
-  // Datos
-  const [eventos, setEventos] = useState([]);
   const [resultados, setResultados] = useState([]);
+  const [eventos, setEventos] = useState([]);
   const [atletas, setAtletas] = useState([]);
   const [clubes, setClubes] = useState([]);
   const [estadisticas, setEstadisticas] = useState({});
-  const [mejoresTiempos, setMejoresTiempos] = useState([]);
-  const [progresoAtletas, setProgresoAtletas] = useState([]);
+  const [filtros, setFiltros] = useState({
+    eventoId: '',
+    categoria: '',
+    club: '',
+    añoCompetitivo: '',
+    sexo: ''
+  });
+  const [modalDetallesOpen, setModalDetallesOpen] = useState(false);
+  const [resultadoSeleccionado, setResultadoSeleccionado] = useState(null);
+  const [error, setError] = useState('');
+
+  const categorias = [
+    'Sub-8', 'Sub-10', 'Sub-12', 'Sub-14', 'Sub-16', 'Sub-18', 
+    'Sub-20', 'Sub-23', 'Mayor', 'Máster'
+  ];
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (user) {
     cargarDatos();
-  }, [user]);
-
-  useEffect(() => {
-    if (resultados.length > 0) {
-      calcularEstadisticas();
     }
-  }, [resultados, filtroEvento, filtroDisciplina, filtroCategoria]);
+  }, [user]);
 
   const cargarDatos = async () => {
     try {
       setLoading(true);
       
-      // Cargar eventos
-      const eventosRes = await axios.get('http://localhost:5000/api/eventos');
-      setEventos(eventosRes.data);
-      
       // Cargar resultados
       const resultadosRes = await axios.get('http://localhost:5000/api/resultados');
       setResultados(resultadosRes.data);
+      
+      // Cargar eventos
+      const eventosRes = await axios.get('http://localhost:5000/api/eventos');
+      setEventos(eventosRes.data);
       
       // Cargar atletas
       const atletasRes = await axios.get('http://localhost:5000/api/registros?rol=atleta');
@@ -104,6 +64,10 @@ const Reportes = () => {
       const clubesRes = await axios.get('http://localhost:5000/api/clubes');
       setClubes(clubesRes.data);
       
+      // Cargar estadísticas
+      const estadisticasRes = await axios.get('http://localhost:5000/api/resultados/estadisticas/generales');
+      setEstadisticas(estadisticasRes.data);
+      
     } catch (error) {
       console.error('Error al cargar datos:', error);
       setError('Error al cargar los datos para los reportes');
@@ -112,284 +76,159 @@ const Reportes = () => {
     }
   };
 
-  const calcularEstadisticas = () => {
-    let datosFiltrados = [...resultados];
+  const aplicarFiltros = () => {
+    let resultadosFiltrados = [...resultados];
+
+    if (filtros.eventoId) {
+      resultadosFiltrados = resultadosFiltrados.filter(r => r.eventoId === filtros.eventoId);
+    }
+    if (filtros.categoria) {
+      resultadosFiltrados = resultadosFiltrados.filter(r => r.categoria === filtros.categoria);
+    }
+    if (filtros.club) {
+      resultadosFiltrados = resultadosFiltrados.filter(r => r.club === filtros.club);
+    }
+    if (filtros.añoCompetitivo) {
+      resultadosFiltrados = resultadosFiltrados.filter(r => r.añoCompetitivo === parseInt(filtros.añoCompetitivo));
+    }
+    if (filtros.sexo) {
+      resultadosFiltrados = resultadosFiltrados.filter(r => r.sexo === filtros.sexo);
+    }
+
+    return resultadosFiltrados;
+  };
+
+  const obtenerNombreEvento = (eventoId) => {
+    const evento = eventos.find(e => e._id === eventoId);
+    return evento ? evento.titulo : 'Evento no encontrado';
+  };
+
+  const obtenerNombreAtleta = (atletaId) => {
+    const atleta = atletas.find(a => a._id === atletaId);
+    if (!atleta) return 'Atleta no encontrado';
+    return `${atleta.nombre} ${atleta.apellidopa} ${atleta.apellidoma}`;
+  };
+
+  const obtenerNombreEntrenador = (entrenadorId) => {
+    if (!entrenadorId) return 'Independiente';
+    const entrenador = atletas.find(a => a._id === entrenadorId && a.rol === 'entrenador');
+    return entrenador ? `${entrenador.nombre} ${entrenador.apellidopa} ${entrenador.apellidoma}` : 'No encontrado';
+  };
+
+  const calcularEdad = (fechaNacimiento) => {
+    if (!fechaNacimiento) return 'N/A';
+    const hoy = new Date();
+    const fechaNac = new Date(fechaNacimiento);
+    let edad = hoy.getFullYear() - fechaNac.getFullYear();
+    const mes = hoy.getMonth() - fechaNac.getMonth();
+    if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
+      edad--;
+    }
+    return edad;
+  };
+
+  const exportarExcel = () => {
+    const resultadosFiltrados = aplicarFiltros();
     
-    // Aplicar filtros
-    if (filtroEvento) {
-      datosFiltrados = datosFiltrados.filter(r => r.eventoId === filtroEvento);
-    }
-    if (filtroDisciplina) {
-      datosFiltrados = datosFiltrados.filter(r => r.disciplina === filtroDisciplina);
-    }
-    if (filtroCategoria) {
-      datosFiltrados = datosFiltrados.filter(r => r.categoria === filtroCategoria);
-    }
-    if (filtroFecha !== 'todos') {
-      const fechaLimite = new Date();
-      if (filtroFecha === 'mes') {
-        fechaLimite.setMonth(fechaLimite.getMonth() - 1);
-      } else if (filtroFecha === 'trimestre') {
-        fechaLimite.setMonth(fechaLimite.getMonth() - 3);
-      } else if (filtroFecha === 'año') {
-        fechaLimite.setFullYear(fechaLimite.getFullYear() - 1);
-      }
-      datosFiltrados = datosFiltrados.filter(r => new Date(r.fechaEvento) >= fechaLimite);
+    if (resultadosFiltrados.length === 0) {
+      alert('No hay datos para exportar');
+      return;
     }
 
-    // Estadísticas generales
-    const totalResultados = datosFiltrados.length;
-    const totalAtletas = new Set(datosFiltrados.map(r => r.atletaId)).size;
-    const totalEventos = new Set(datosFiltrados.map(r => r.eventoId)).size;
-    const podios = datosFiltrados.filter(r => r.posicion && r.posicion <= 3).length;
-
-    // Mejores tiempos por disciplina
-    const mejoresPorDisciplina = {};
-    datosFiltrados.forEach(resultado => {
-      if (resultado.tiempo) {
-        if (!mejoresPorDisciplina[resultado.disciplina] || 
-            resultado.tiempo < mejoresPorDisciplina[resultado.disciplina].tiempo) {
-          mejoresPorDisciplina[resultado.disciplina] = resultado;
-        }
-      }
+    // Preparar datos para Excel
+    const datosExcel = resultadosFiltrados.map(resultado => {
+      const atleta = atletas.find(a => a._id === resultado.atletaId);
+      const evento = eventos.find(e => e._id === resultado.eventoId);
+      
+      return {
+        'CURP': atleta?.curp || 'N/A',
+        'FECHA NACIMIENTO': atleta?.fechaNacimiento ? new Date(atleta.fechaNacimiento).toLocaleDateString('es-ES') : 'N/A',
+        'NOMBRE ATLETA': atleta ? `${atleta.nombre} ${atleta.apellidopa} ${atleta.apellidoma}` : 'N/A',
+        'SEXO': resultado.sexo || 'N/A',
+        'CATEGORIA': resultado.categoria || 'N/A',
+        'MUNICIPIO': resultado.municipio || 'N/A',
+        'CLUB': resultado.club || 'Independiente',
+        'AÑO DE COMPETITIVO': resultado.añoCompetitivo || 'N/A',
+        'PRUEBA 1': resultado.pruebas?.[0]?.nombre || 'N/A',
+        'MARCA 1': resultado.pruebas?.[0]?.marca ? `${resultado.pruebas[0].marca} ${resultado.pruebas[0].unidad}` : 'N/A',
+        'PRUEBA 2': resultado.pruebas?.[1]?.nombre || 'N/A',
+        'MARCA 2': resultado.pruebas?.[1]?.marca ? `${resultado.pruebas[1].marca} ${resultado.pruebas[1].unidad}` : 'N/A',
+        'PRUEBA 3': resultado.pruebas?.[2]?.nombre || 'N/A',
+        'MARCA 3': resultado.pruebas?.[2]?.marca ? `${resultado.pruebas[2].marca} ${resultado.pruebas[2].unidad}` : 'N/A',
+        'PRUEBA 4': resultado.pruebas?.[3]?.nombre || 'N/A',
+        'MARCA 4': resultado.pruebas?.[3]?.marca ? `${resultado.pruebas[3].marca} ${resultado.pruebas[3].unidad}` : 'N/A',
+        'NOMBRE ENTRENADOR': obtenerNombreEntrenador(resultado.entrenadorId),
+        'LUGAR DE ENTRENAMIENTO': resultado.lugarEntrenamiento || 'N/A'
+      };
     });
 
-    // Distribución por categorías
-    const distribucionCategorias = {};
-    datosFiltrados.forEach(r => {
-      distribucionCategorias[r.categoria] = (distribucionCategorias[r.categoria] || 0) + 1;
-    });
-
-    // Progreso temporal
-    const progreso = datosFiltrados
-      .sort((a, b) => new Date(a.fechaEvento) - new Date(b.fechaEvento))
-      .map(r => ({
-        fecha: new Date(r.fechaEvento).toLocaleDateString('es-ES'),
-        disciplina: r.disciplina,
-        tiempo: r.tiempo,
-        posicion: r.posicion
-      }));
-
-    setEstadisticas({
-      totalResultados,
-      totalAtletas,
-      totalEventos,
-      podios,
-      mejoresPorDisciplina,
-      distribucionCategorias,
-      progreso
-    });
-
-    setMejoresTiempos(Object.values(mejoresPorDisciplina));
+    // Crear libro de Excel
+    const ws = XLSX.utils.json_to_sheet(datosExcel);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Resultados');
+    
+    // Descargar archivo
+    const nombreArchivo = `Reporte_Resultados_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, nombreArchivo);
   };
 
-  const generarPDF = async () => {
-    try {
-      const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage([595.28, 841.89]); // A4
-      const { width, height } = page.getSize();
-      
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      const fontSize = 12;
-      const lineHeight = fontSize * 1.2;
-      
-      let y = height - 50;
-      
-      // Título
-      page.drawText('REPORTE DE RESULTADOS - PAGESTADIA', {
-        x: 50,
-        y,
-        size: 18,
-        font,
-        color: rgb(0.5, 0, 0.125)
-      });
-      y -= 30;
-      
-      // Fecha del reporte
-      page.drawText(`Generado el: ${new Date().toLocaleDateString('es-ES')}`, {
-        x: 50,
-        y,
-        size: fontSize,
-        font
-      });
-      y -= 30;
-      
-      // Estadísticas generales
-      page.drawText('ESTADÍSTICAS GENERALES:', {
-        x: 50,
-        y,
-        size: 14,
-        font,
-        color: rgb(0.5, 0, 0.125)
-      });
-      y -= 20;
-      
-      page.drawText(`Total de resultados: ${estadisticas.totalResultados}`, {
-        x: 50,
-        y,
-        size: fontSize,
-        font
-      });
-      y -= lineHeight;
-      
-      page.drawText(`Total de atletas: ${estadisticas.totalAtletas}`, {
-        x: 50,
-        y,
-        size: fontSize,
-        font
-      });
-      y -= lineHeight;
-      
-      page.drawText(`Total de eventos: ${estadisticas.totalEventos}`, {
-        x: 50,
-        y,
-        size: fontSize,
-        font
-      });
-      y -= lineHeight;
-      
-      page.drawText(`Podios obtenidos: ${estadisticas.podios}`, {
-        x: 50,
-        y,
-        size: fontSize,
-        font
-      });
-      y -= 30;
-      
-      // Mejores tiempos
-      if (mejoresTiempos.length > 0) {
-        page.drawText('MEJORES TIEMPOS POR DISCIPLINA:', {
-          x: 50,
-          y,
-          size: 14,
-          font,
-          color: rgb(0.5, 0, 0.125)
-        });
-        y -= 20;
-        
-        mejoresTiempos.forEach(resultado => {
-          page.drawText(`${resultado.disciplina}: ${resultado.tiempo}s - ${resultado.nombreAtleta}`, {
-            x: 50,
-            y,
-            size: fontSize,
-            font
-          });
-          y -= lineHeight;
-        });
-      }
-      
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `reporte-resultados-${new Date().toISOString().split('T')[0]}.pdf`;
-      link.click();
-      URL.revokeObjectURL(url);
-      
-    } catch (error) {
-      console.error('Error al generar PDF:', error);
-      setError('Error al generar el PDF');
-    }
+  const handleVerDetalles = (resultado) => {
+    setResultadoSeleccionado(resultado);
+    setModalDetallesOpen(true);
   };
 
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
+  const limpiarFiltros = () => {
+    setFiltros({
+      eventoId: '',
+      categoria: '',
+      club: '',
+      añoCompetitivo: '',
+      sexo: ''
+    });
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress size={60} sx={{ color: '#800020' }} />
       </Box>
     );
   }
 
-  if (error) {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Alert severity="error">{error}</Alert>
-      </Container>
-    );
-  }
+  const resultadosFiltrados = aplicarFiltros();
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ color: '#800020', fontWeight: 'bold' }}>
-        📊 Reportes y Estadísticas
+    <Container maxWidth="xl" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh' }}>
+      <Typography variant="h4" align="center" gutterBottom sx={{ color: '#800020', fontWeight: 'bold', mb: 4 }}>
+        Reportes y Análisis de Resultados
       </Typography>
 
-      {/* Filtros */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>Filtros</Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Evento</InputLabel>
-              <Select
-                value={filtroEvento}
-                onChange={(e) => setFiltroEvento(e.target.value)}
-                label="Evento"
-              >
-                <MenuItem value="">Todos los eventos</MenuItem>
-                {eventos.map(evento => (
-                  <MenuItem key={evento._id} value={evento._id}>
-                    {evento.titulo}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Disciplina</InputLabel>
-              <Select
-                value={filtroDisciplina}
-                onChange={(e) => setFiltroDisciplina(e.target.value)}
-                label="Disciplina"
-              >
-                <MenuItem value="">Todas las disciplinas</MenuItem>
-                {Array.from(new Set(resultados.map(r => r.disciplina))).map(disciplina => (
-                  <MenuItem key={disciplina} value={disciplina}>{disciplina}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Categoría</InputLabel>
-              <Select
-                value={filtroCategoria}
-                onChange={(e) => setFiltroCategoria(e.target.value)}
-                label="Categoría"
-              >
-                <MenuItem value="">Todas las categorías</MenuItem>
-                {Array.from(new Set(resultados.map(r => r.categoria))).map(categoria => (
-                  <MenuItem key={categoria} value={categoria}>{categoria}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Período</InputLabel>
-              <Select
-                value={filtroFecha}
-                onChange={(e) => setFiltroFecha(e.target.value)}
-                label="Período"
-              >
-                <MenuItem value="todos">Todos los períodos</MenuItem>
-                <MenuItem value="mes">Último mes</MenuItem>
-                <MenuItem value="trimestre">Último trimestre</MenuItem>
-                <MenuItem value="año">Último año</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
-      </Paper>
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
 
-      {/* Tarjetas de estadísticas */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
+      {/* Estadísticas generales */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ bgcolor: '#f8f9fa' }}>
+            <CardContent>
+              <Box display="flex" alignItems="center">
+                <EmojiEventsIcon sx={{ fontSize: 40, color: '#800020', mr: 2 }} />
+                <Box>
+                  <Typography variant="h4" color="primary">
+                    {estadisticas.totalResultados || 0}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Total de Resultados
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ bgcolor: '#f8f9fa' }}>
             <CardContent>
@@ -407,40 +246,25 @@ const Reportes = () => {
             </CardContent>
           </Card>
         </Grid>
+
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ bgcolor: '#f8f9fa' }}>
             <CardContent>
               <Box display="flex" alignItems="center">
-                <EmojiEventsIcon sx={{ fontSize: 40, color: '#800020', mr: 2 }} />
+                <GroupIcon sx={{ fontSize: 40, color: '#800020', mr: 2 }} />
                 <Box>
                   <Typography variant="h4" color="primary">
-                    {estadisticas.totalEventos || 0}
+                    {estadisticas.totalClubes || 0}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Eventos Realizados
+                    Clubes Representados
                   </Typography>
                 </Box>
               </Box>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: '#f8f9fa' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center">
-                <SpeedIcon sx={{ fontSize: 40, color: '#800020', mr: 2 }} />
-                <Box>
-                  <Typography variant="h4" color="primary">
-                    {estadisticas.totalResultados || 0}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Resultados Registrados
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ bgcolor: '#f8f9fa' }}>
             <CardContent>
@@ -448,10 +272,10 @@ const Reportes = () => {
                 <TrendingUpIcon sx={{ fontSize: 40, color: '#800020', mr: 2 }} />
                 <Box>
                   <Typography variant="h4" color="primary">
-                    {estadisticas.podios || 0}
+                    {estadisticas.totalEventos || 0}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Podios Obtenidos
+                    Eventos Registrados
                   </Typography>
                 </Box>
               </Box>
@@ -460,154 +284,285 @@ const Reportes = () => {
         </Grid>
       </Grid>
 
-      {/* Botón de exportar PDF */}
-      <Box sx={{ mb: 3, textAlign: 'right' }}>
+      {/* Filtros */}
+      <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold', mb: 3 }}>
+          <FilterIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Filtros de Búsqueda
+        </Typography>
+        
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Evento</InputLabel>
+              <Select
+                value={filtros.eventoId}
+                onChange={(e) => setFiltros(prev => ({ ...prev, eventoId: e.target.value }))}
+                label="Evento"
+              >
+                <MenuItem value="">Todos los eventos</MenuItem>
+                {eventos.map((evento) => (
+                  <MenuItem key={evento._id} value={evento._id}>
+                    {evento.titulo}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Categoría</InputLabel>
+              <Select
+                value={filtros.categoria}
+                onChange={(e) => setFiltros(prev => ({ ...prev, categoria: e.target.value }))}
+                label="Categoría"
+              >
+                <MenuItem value="">Todas las categorías</MenuItem>
+                {categorias.map((cat) => (
+                  <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Club</InputLabel>
+              <Select
+                value={filtros.club}
+                onChange={(e) => setFiltros(prev => ({ ...prev, club: e.target.value }))}
+                label="Club"
+              >
+                <MenuItem value="">Todos los clubes</MenuItem>
+                {clubes.map((club) => (
+                  <MenuItem key={club._id} value={club.nombre}>
+                    {club.nombre}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={2}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Año Competitivo"
+              type="number"
+              value={filtros.añoCompetitivo}
+              onChange={(e) => setFiltros(prev => ({ ...prev, añoCompetitivo: e.target.value }))}
+              inputProps={{ min: 2020, max: 2030 }}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Sexo</InputLabel>
+              <Select
+                value={filtros.sexo}
+                onChange={(e) => setFiltros(prev => ({ ...prev, sexo: e.target.value }))}
+                label="Sexo"
+              >
+                <MenuItem value="">Todos</MenuItem>
+                <MenuItem value="masculino">Masculino</MenuItem>
+                <MenuItem value="femenino">Femenino</MenuItem>
+                <MenuItem value="mixto">Mixto</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={2}>
+            <Box display="flex" gap={1}>
+              <Button
+                variant="outlined"
+                onClick={limpiarFiltros}
+                size="small"
+                sx={{ color: '#7A4069' }}
+              >
+                Limpiar
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Botones de acción */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
+          Resultados Filtrados ({resultadosFiltrados.length})
+        </Typography>
+        
         <Button
           variant="contained"
           startIcon={<DownloadIcon />}
-          onClick={generarPDF}
-          sx={{ bgcolor: '#800020', '&:hover': { bgcolor: '#600018' } }}
+          onClick={exportarExcel}
+          disabled={resultadosFiltrados.length === 0}
+          sx={{
+            backgroundColor: '#2E7D32',
+            '&:hover': { backgroundColor: '#1B5E20' }
+          }}
         >
-          Exportar PDF
+          Exportar a Excel
         </Button>
       </Box>
 
-      {/* Tabs para diferentes tipos de reportes */}
-      <Paper sx={{ width: '100%' }}>
-        <Tabs value={activeTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tab label="Gráficos" />
-          <Tab label="Mejores Tiempos" />
-          <Tab label="Distribución por Categorías" />
-          <Tab label="Progreso Temporal" />
-        </Tabs>
-
-        {/* Contenido de los tabs */}
-        <Box sx={{ p: 3 }}>
-          {activeTab === 0 && (
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="h6" gutterBottom>Resultados por Disciplina</Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={Object.entries(estadisticas.distribucionCategorias || {}).map(([categoria, cantidad]) => ({
-                    categoria,
-                    cantidad
-                  }))}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="categoria" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="cantidad" fill="#800020" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="h6" gutterBottom>Distribución de Categorías</Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={Object.entries(estadisticas.distribucionCategorias || {}).map(([categoria, cantidad], index) => ({
-                        name: categoria,
-                        value: cantidad
-                      }))}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {Object.entries(estadisticas.distribucionCategorias || {}).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Grid>
-            </Grid>
-          )}
-
-          {activeTab === 1 && (
-            <Box>
-              <Typography variant="h6" gutterBottom>Mejores Tiempos por Disciplina</Typography>
+      {/* Tabla de resultados */}
+      <Paper elevation={3} sx={{ overflow: 'auto' }}>
+        {resultadosFiltrados.length === 0 ? (
+          <Box sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="body1" color="textSecondary">
+              No hay resultados que coincidan con los filtros aplicados.
+            </Typography>
+          </Box>
+        ) : (
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Disciplina</TableCell>
-                    <TableCell>Atleta</TableCell>
-                    <TableCell>Tiempo</TableCell>
-                    <TableCell>Evento</TableCell>
-                    <TableCell>Fecha</TableCell>
+                <TableCell><strong>Evento</strong></TableCell>
+                <TableCell><strong>Atleta</strong></TableCell>
+                <TableCell><strong>Categoría</strong></TableCell>
+                <TableCell><strong>Club</strong></TableCell>
+                <TableCell><strong>Año</strong></TableCell>
+                <TableCell><strong>Pruebas</strong></TableCell>
+                <TableCell><strong>Acciones</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {mejoresTiempos.map((resultado, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{resultado.disciplina}</TableCell>
-                      <TableCell>{resultado.nombreAtleta}</TableCell>
+              {resultadosFiltrados.map((resultado) => (
+                <TableRow key={resultado._id}>
+                  <TableCell>
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      {obtenerNombreEvento(resultado.eventoId)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>{obtenerNombreAtleta(resultado.atletaId)}</TableCell>
+                  <TableCell>
+                    <Chip label={resultado.categoria} color="primary" size="small" />
+                  </TableCell>
+                  <TableCell>{resultado.club || 'Independiente'}</TableCell>
+                  <TableCell>{resultado.añoCompetitivo}</TableCell>
                       <TableCell>
+                    <Box display="flex" flexWrap="wrap" gap={0.5}>
+                      {resultado.pruebas?.map((prueba, index) => (
                         <Chip 
-                          label={`${resultado.tiempo}s`} 
-                          color="primary" 
+                          key={index}
+                          label={`${prueba.nombre}: ${prueba.marca} ${prueba.unidad}`}
+                          size="small"
                           variant="outlined"
                         />
+                      ))}
+                    </Box>
                       </TableCell>
-                      <TableCell>{resultado.nombreEvento}</TableCell>
                       <TableCell>
-                        {new Date(resultado.fechaEvento).toLocaleDateString('es-ES')}
+                    <IconButton
+                      size="small"
+                      onClick={() => handleVerDetalles(resultado)}
+                      color="primary"
+                      title="Ver detalles"
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </Box>
-          )}
+        )}
+      </Paper>
 
-          {activeTab === 2 && (
-            <Box>
-              <Typography variant="h6" gutterBottom>Distribución de Resultados por Categoría</Typography>
+      {/* Modal de detalles */}
+      <Dialog open={modalDetallesOpen} onClose={() => setModalDetallesOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
+            Detalles del Resultado
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          {resultadoSeleccionado && (
+            <Grid container spacing={3} sx={{ mt: 1 }}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#7A4069' }}>
+                  Evento:
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {obtenerNombreEvento(resultadoSeleccionado.eventoId)}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#7A4069' }}>
+                  Atleta:
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {obtenerNombreAtleta(resultadoSeleccionado.atletaId)}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#7A4069' }}>
+                  Categoría:
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {resultadoSeleccionado.categoria}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#7A4069' }}>
+                  Club:
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {resultadoSeleccionado.club || 'Independiente'}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#7A4069' }}>
+                  Entrenador:
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {obtenerNombreEntrenador(resultadoSeleccionado.entrenadorId)}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#7A4069' }}>
+                  Lugar de Entrenamiento:
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {resultadoSeleccionado.lugarEntrenamiento || 'No especificado'}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold', mb: 2 }}>
+                  Pruebas y Marcas
+                </Typography>
               <Grid container spacing={2}>
-                {Object.entries(estadisticas.distribucionCategorias || {}).map(([categoria, cantidad]) => (
-                  <Grid item xs={12} sm={6} md={4} key={categoria}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="h5" color="primary">
-                          {cantidad}
+                  {resultadoSeleccionado.pruebas?.map((prueba, index) => (
+                    <Grid item xs={12} md={6} key={index}>
+                      <Card variant="outlined" sx={{ p: 2 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#7A4069' }}>
+                          Prueba {index + 1}: {prueba.nombre}
                         </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {categoria}
+                        <Typography variant="body1">
+                          Marca: {prueba.marca} {prueba.unidad}
                         </Typography>
-                      </CardContent>
                     </Card>
                   </Grid>
                 ))}
               </Grid>
-            </Box>
+              </Grid>
+            </Grid>
           )}
-
-          {activeTab === 3 && (
-            <Box>
-              <Typography variant="h6" gutterBottom>Progreso Temporal de Resultados</Typography>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={estadisticas.progreso || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="fecha" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="tiempo" 
-                    stroke="#800020" 
-                    strokeWidth={2}
-                    dot={{ fill: '#800020', strokeWidth: 2, r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </Box>
-          )}
-        </Box>
-      </Paper>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setModalDetallesOpen(false)} sx={{ color: '#7A4069' }}>
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

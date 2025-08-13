@@ -47,6 +47,7 @@ import ValidacionCategoriaAutomatica from "./Componentes/Administrativo/Validaci
 import GestionClubes from "./Componentes/Administrativo/GestionClubes";
 import GestionarAtletasAdmin from "./Componentes/Administrativo/GestionarAtletas";
 import PromocionarAtleta from "./Componentes/Administrativo/PromocionarAtleta";
+
 import PaginaPrincipalEntrenador from "./Paginas/PaginaPrincipalEntrenador";
 import LayoutEntrenador from "./Componentes/Entrenador/LayoutEntrenador";
 import GestionarAtletasEntrenador from "./Componentes/Entrenador/GestionarAtletas";
@@ -106,6 +107,7 @@ const App = () => {
           <Route path="/administrador/terminospca" element={<LayoutConEncabezado><TerminosPCA /></LayoutConEncabezado>} />
           <Route path="/administrador/visionpca" element={<LayoutConEncabezado><VisionPCA /></LayoutConEncabezado>} />
           <Route path="/administrador/misionpca" element={<LayoutConEncabezado><MisionPCA /></LayoutConEncabezado>} />
+          
 
           {/* Rutas del Entrenador con LayoutEntrenador (sin LayoutConEncabezado) */}
           <Route path="/entrenador" element={<LayoutEntrenador><PaginaPrincipalEntrenador /></LayoutEntrenador>} />

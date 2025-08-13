@@ -9,22 +9,32 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Modal,
-  TextField,
   Typography,
   IconButton,
   CircularProgress,
   Alert,
-  MenuItem,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  Card,
+  CardContent
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { es } from 'date-fns/locale';
+import { 
+  Visibility as VisibilityIcon, 
+  PictureAsPdf as PdfIcon,
+  EmojiEvents as TrophyIcon,
+  Person as PersonIcon,
+  CalendarToday as CalendarIcon,
+  LocationOn as LocationIcon
+} from '@mui/icons-material';
 import axios from 'axios';
-import { useAuth } from '../Autenticacion/AuthContext'; // Ajusta la ruta
+import { useAuth } from '../Autenticacion/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
+import jsPDF from 'jspdf';
 
 const Resultados = () => {
   const { user } = useAuth();
@@ -32,9 +42,9 @@ const Resultados = () => {
   const [resultados, setResultados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [openModal, setOpenModal] = useState(false);
-  const [formData, setFormData] = useState({ evento: '', atleta: '', posicion: '', tiempo: '', fecha: null });
-  const [editIndex, setEditIndex] = useState(null);
+  const [modalDetallesOpen, setModalDetallesOpen] = useState(false);
+  const [resultadoSeleccionado, setResultadoSeleccionado] = useState(null);
+  const [logoUrl, setLogoUrl] = useState('');
 
   useEffect(() => {
     if (!user?.id) {
@@ -42,85 +52,316 @@ const Resultados = () => {
       return;
     }
     fetchResultados();
+    fetchLogo();
   }, [user, navigate]);
 
   const fetchResultados = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/resultados?clubId=${user.id}`);
-      setResultados(response.data);
       setError('');
+      
+      console.log('🔍 Club ID:', user.id);
+      console.log('🔍 Usuario:', user);
+      
+      // Obtener resultados del club específico
+      const response = await axios.get(`http://localhost:5000/api/resultados/club/${user.id}`);
+      console.log('📊 Respuesta de la API:', response.data);
+      
+      const sortedResultados = response.data.sort((a, b) => new Date(b.fechaEvento) - new Date(a.fechaEvento));
+      setResultados(sortedResultados);
+      console.log('✅ Resultados cargados exitosamente:', sortedResultados.length);
     } catch (error) {
-      console.error('Error al obtener resultados:', error);
-      setError('Error al cargar los resultados. Intente de nuevo.');
+      console.error('❌ Error al obtener resultados:', error);
+      console.error('❌ Detalles del error:', error.response?.data || error.message);
+      
+      if (error.response?.status === 404) {
+        setError('Club no encontrado. Verifique su información.');
+      } else if (error.response?.status === 500) {
+        setError('Error del servidor. Intente de nuevo más tarde.');
+      } else {
+        setError(`Error al cargar los resultados: ${error.response?.data?.message || error.message}`);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddOrEdit = async () => {
+  const fetchLogo = async () => {
     try {
-      const url = editIndex !== null
-        ? `https://backendd-q0zc.onrender.com/api/resultados/${resultados[editIndex]._id}`
-        : `https://backendd-q0zc.onrender.com/api/resultados`;
-      const method = editIndex !== null ? 'put' : 'post';
-      await axios({
-        method,
-        url,
-        data: { ...formData, clubId: user.id },
-        headers: { 'Content-Type': 'application/json' },
-      });
-      setOpenModal(false);
-      setFormData({ evento: '', atleta: '', posicion: '', tiempo: '', fecha: null });
-      setEditIndex(null);
-      fetchResultados();
+      const response = await axios.get('http://localhost:5000/api/configuracion/logo');
+      if (response.data && response.data.logoUrl) {
+        console.log('✅ Logo cargado exitosamente:', response.data.logoUrl);
+        setLogoUrl(response.data.logoUrl);
+      } else {
+        console.warn('⚠️ No se encontró URL del logo en la respuesta');
+      }
     } catch (error) {
-      console.error('Error al guardar resultado:', error);
-      setError('Error al guardar el resultado. Intente de nuevo.');
+      console.warn('⚠️ No se pudo cargar el logo:', error);
     }
   };
 
-  const handleDelete = async (index) => {
-    try {
-      await axios.delete(`https://backendd-q0zc.onrender.com/api/resultados/${resultados[index]._id}`);
-      const newResultados = resultados.filter((_, i) => i !== index);
-      setResultados(newResultados);
-      setError('');
-    } catch (error) {
-      console.error('Error al eliminar resultado:', error);
-      setError('Error al eliminar el resultado. Intente de nuevo.');
-    }
-  };
-
-  const handleOpenModal = (index = null) => {
-    if (index !== null) {
-      setFormData({ ...resultados[index] });
-      setEditIndex(index);
-    } else {
-      setFormData({ evento: '', atleta: '', posicion: '', tiempo: '', fecha: null });
-      setEditIndex(null);
-    }
-    setOpenModal(true);
+  const handleViewDetails = (resultado) => {
+    setResultadoSeleccionado(resultado);
+    setModalDetallesOpen(true);
   };
 
   const handleCloseModal = () => {
-    setOpenModal(false);
-    setFormData({ evento: '', atleta: '', posicion: '', tiempo: '', fecha: null });
-    setEditIndex(null);
+    setModalDetallesOpen(false);
+    setResultadoSeleccionado(null);
+  };
+
+  const handleDownloadPDF = async (resultado) => {
+    try {
+      // Verificar que jsPDF esté disponible
+      if (typeof jsPDF === 'undefined') {
+        console.error('jsPDF no está definido');
+        setError('Error: La librería jsPDF no está disponible.');
+        return;
+      }
+
+      // Crear nuevo documento PDF
+      const doc = new jsPDF();
+      
+      // Variables para posicionamiento
+      let y = 15;
+      const margin = 20;
+      const pageWidth = doc.internal.pageSize.width;
+      const contentWidth = pageWidth - (2 * margin);
+      
+      // Función para agregar texto con wrap
+      const addText = (text, x, y, maxWidth) => {
+        const lines = doc.splitTextToSize(text, maxWidth);
+        doc.text(lines, x, y);
+        return y + (lines.length * 5);
+      };
+      
+      // Función para agregar título centrado
+      const addCenteredTitle = (text, y, fontSize = 16) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', 'bold');
+        const textWidth = doc.getTextWidth(text);
+        const x = (pageWidth - textWidth) / 2;
+        doc.text(text, x, y);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        return y + 8;
+      };
+      
+      // Función para agregar subtítulo
+      const addSubtitle = (text, y, fontSize = 12) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(128, 0, 32); // Color #800020 (marrón oscuro)
+        doc.text(text, margin, y);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        return y + 6;
+      };
+
+      // Logo en la esquina superior izquierda
+      if (logoUrl) {
+        try {
+          console.log('🖼️ Intentando agregar logo:', logoUrl);
+          doc.addImage(logoUrl, 'JPEG', margin, y, 20, 20);
+          y += 25;
+          console.log('✅ Logo agregado exitosamente al PDF');
+        } catch (logoError) {
+          console.warn('⚠️ No se pudo agregar el logo al PDF:', logoError);
+          // Continuar sin logo
+        }
+      } else {
+        console.warn('⚠️ No hay logo disponible para agregar al PDF');
+      }
+
+      // Títulos del encabezado (centrados)
+      y = addCenteredTitle('INSTITUTO VERACRUZANO DEL DEPORTE', y, 16);
+      y = addCenteredTitle('Gobierno del Estado de Veracruz', y, 10);
+      y = addCenteredTitle('REPORTE DE RESULTADOS DEL CLUB', y, 14);
+      
+      y += 10;
+      
+      // Línea horizontal marrón separando el encabezado
+      doc.setDrawColor(128, 0, 32);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 12;
+      
+      // Fecha del reporte
+      const fechaActual = new Date().toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(`Veracruz, Ver. a ${fechaActual}`, pageWidth - margin - doc.getTextWidth(`Veracruz, Ver. a ${fechaActual}`), y);
+      doc.setFontSize(10);
+      
+      y += 10;
+
+      // Título del evento (centrado y en marrón)
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(128, 0, 32);
+      const eventTitle = resultado.nombreEvento || 'Evento Deportivo';
+      const eventTitleWidth = doc.getTextWidth(eventTitle);
+      const eventTitleX = (pageWidth - eventTitleWidth) / 2;
+      doc.text(eventTitle, eventTitleX, y);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      y += 10;
+
+      // Información del Atleta
+      y = addSubtitle('INFORMACIÓN DEL ATLETA:', y, 12);
+      
+      const infoAtleta = [
+        { label: 'Nombre Completo:', value: resultado.nombreAtleta || 'No especificado' },
+        { label: 'Categoría:', value: resultado.categoria || 'No especificada' },
+        { label: 'Sexo:', value: resultado.sexo === 'masculino' ? 'Masculino' : 
+                                  resultado.sexo === 'femenino' ? 'Femenino' : 'No especificado' },
+        { label: 'Municipio:', value: resultado.municipio || 'No especificado' },
+        { label: 'Club:', value: resultado.club || 'No especificado' },
+        { label: 'Año Competitivo:', value: resultado.añoCompetitivo || 'No especificado' }
+      ];
+      
+      infoAtleta.forEach(detalle => {
+        const labelText = `• ${detalle.label}`;
+        const valueText = detalle.value;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(labelText, margin, y);
+        doc.setFont('helvetica', 'normal');
+        
+        const labelWidth = doc.getTextWidth(labelText);
+        const valueX = margin + labelWidth + 3;
+        const valueWidth = contentWidth - labelWidth - 3;
+        
+        y = addText(valueText, valueX, y, valueWidth);
+        y += 3;
+      });
+
+      y += 5;
+
+      // Información del Evento
+      y = addSubtitle('INFORMACIÓN DEL EVENTO:', y, 12);
+      
+      const infoEvento = [
+        { label: 'Fecha del Evento:', value: resultado.fechaEvento ? new Date(resultado.fechaEvento).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }) : 'No especificada' },
+        { label: 'Convocatoria:', value: `#${parseInt(resultado.convocatoriaIndex) + 1}` },
+        { label: 'Lugar de Entrenamiento:', value: resultado.lugarEntrenamiento || 'No especificado' }
+      ];
+      
+      infoEvento.forEach(detalle => {
+        const labelText = `• ${detalle.label}`;
+        const valueText = detalle.value;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(labelText, margin, y);
+        doc.setFont('helvetica', 'normal');
+        
+        const labelWidth = doc.getTextWidth(labelText);
+        const valueX = margin + labelWidth + 3;
+        const valueWidth = contentWidth - labelWidth - 3;
+        
+        y = addText(valueText, valueX, y, valueWidth);
+        y += 3;
+      });
+
+      y += 5;
+
+      // Pruebas y Marcas
+      y = addSubtitle('PRUEBAS Y MARCAS:', y, 12);
+      
+      if (resultado.pruebas && resultado.pruebas.length > 0) {
+        resultado.pruebas.forEach((prueba, index) => {
+          if (prueba.nombre && prueba.marca) {
+            const pruebaText = `• ${prueba.nombre}: ${prueba.marca} ${prueba.unidad || ''}`;
+            y = addText(pruebaText, margin, y, contentWidth);
+            y += 3;
+          }
+        });
+      } else {
+        y = addText('No hay pruebas registradas', margin, y, contentWidth);
+      }
+
+      y += 8;
+
+      // Pie de página
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 6;
+      
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Este reporte es oficial y ha sido emitido por el Instituto Veracruzano del Deporte.', pageWidth / 2, y, { align: 'center' });
+      y += 4;
+      doc.text(`Documento generado el ${fechaActual}`, pageWidth / 2, y, { align: 'center' });
+      
+      // Descargar el PDF
+      const fileName = `Resultado_Club_${resultado.nombreAtleta || 'atleta'}_${resultado.nombreEvento || 'evento'}.pdf`;
+      doc.save(fileName);
+
+      // Mostrar mensaje de éxito
+      Swal.fire({
+        icon: 'success',
+        title: 'PDF Generado',
+        text: 'El reporte de resultados se ha descargado exitosamente',
+        confirmButtonColor: '#800020'
+      });
+
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: `Error al generar el PDF: ${error.message}`,
+        confirmButtonColor: '#800020'
+      });
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Sin fecha';
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getDisciplinaPrincipal = (pruebas) => {
+    if (!pruebas || pruebas.length === 0) return 'Sin disciplina';
+    return pruebas[0]?.nombre || 'Sin disciplina';
+  };
+
+  const getMejorMarca = (pruebas) => {
+    if (!pruebas || pruebas.length === 0) return 'Sin marca';
+    const primeraPrueba = pruebas[0];
+    return `${primeraPrueba?.marca || '0'} ${primeraPrueba?.unidad || ''}`;
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="lg" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh', textAlign: 'center' }}>
+        <Typography variant="h6" sx={{ color: '#800020' }}>
+          Cargando resultados...
+        </Typography>
+      </Container>
     );
   }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh', fontFamily: "'Arial', 'Helvetica', sans-serif" }}>
-      <Typography variant="h4" align="center" gutterBottom sx={{ color: '#800020', fontWeight: 'bold' }}>
-        Gestión de Resultados
+      <Typography variant="h4" align="center" gutterBottom sx={{ color: '#800020', fontWeight: 'bold', mb: 4, fontFamily: "'Arial', 'Helvetica', sans-serif" }}>
+        Resultados de Nuestros Atletas
       </Typography>
 
       {error && (
@@ -131,143 +372,230 @@ const Resultados = () => {
         </Box>
       )}
 
-      <Box sx={{ mb: 2, textAlign: 'right' }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenModal()}
-          sx={{
-            background: '#800020',
-            padding: '10px 20px',
-            borderRadius: '8px',
-            fontWeight: 'bold',
-            '&:hover': {
-              background: '#7A4069',
-              transform: 'translateY(-2px)',
-              boxShadow: '0 4px 12px rgba(122, 64, 105, 0.3)',
-            },
-          }}
-        >
-          Agregar Resultado
-        </Button>
-      </Box>
-
-      <Paper elevation={3} sx={{ p: 2, borderRadius: '12px', background: '#FFFFFF' }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Evento</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Atleta</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Posición</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Tiempo</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Fecha</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Acciones</TableCell>
+      {resultados.length === 0 ? (
+        <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ color: '#666', mb: 2 }}>
+            No hay resultados registrados aún
+          </Typography>
+          <Typography variant="body1" color="textSecondary">
+            Los resultados aparecerán aquí una vez que tus atletas participen en eventos
+          </Typography>
+        </Paper>
+      ) : (
+        <Paper elevation={3} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
+          <Table sx={{ minWidth: 650 }}>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: '#800020' }}>
+                {['Fecha', 'Evento', 'Atleta', 'Disciplina', 'Mejor Marca', 'Categoría', 'Acciones'].map((head) => (
+                  <TableCell
+                    key={head}
+                    sx={{ fontWeight: 'bold', color: '#FFFFFF', fontSize: '1rem', padding: '16px' }}
+                  >
+                    {head}
+                  </TableCell>
+                ))}
             </TableRow>
           </TableHead>
           <TableBody>
-            {resultados.map((resultado, index) => (
-              <TableRow key={index} sx={{ '&:hover': { backgroundColor: '#FAFAFF' }, transition: 'background-color 0.3s' }}>
-                <TableCell sx={{ color: '#333333' }}>{resultado.evento}</TableCell>
-                <TableCell sx={{ color: '#333333' }}>{resultado.atleta}</TableCell>
-                <TableCell sx={{ color: '#333333' }}>{resultado.posicion}</TableCell>
-                <TableCell sx={{ color: '#333333' }}>{resultado.tiempo}</TableCell>
-                <TableCell sx={{ color: '#333333' }}>{new Date(resultado.fecha).toLocaleDateString('es-ES')}</TableCell>
+              {resultados.map((resultado) => (
+                <TableRow
+                  key={resultado._id}
+                  sx={{ '&:hover': { backgroundColor: '#FAFAFF' }, transition: 'background-color 0.3s' }}
+                >
+                  <TableCell sx={{ color: '#333333' }}>
+                    {formatDate(resultado.fechaEvento)}
+                  </TableCell>
+                  <TableCell sx={{ color: '#333333', maxWidth: 200 }}>
+                    <Typography variant="body2" noWrap>
+                      {resultado.nombreEvento || 'Sin nombre'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ color: '#333333' }}>
+                    {resultado.nombreAtleta || 'Sin nombre'}
+                  </TableCell>
+                  <TableCell sx={{ color: '#333333' }}>
+                    {getDisciplinaPrincipal(resultado.pruebas)}
+                  </TableCell>
+                  <TableCell sx={{ color: '#333333' }}>
+                    {getMejorMarca(resultado.pruebas)}
+                  </TableCell>
+                  <TableCell sx={{ color: '#333333' }}>
+                    <Chip 
+                      label={resultado.categoria || 'Sin categoría'} 
+                      size="small" 
+                      sx={{ backgroundColor: '#E3F2FD', color: '#1976D2' }}
+                    />
+                  </TableCell>
                 <TableCell>
-                  <IconButton onClick={() => handleOpenModal(index)} color="primary" sx={{ '&:hover': { backgroundColor: 'rgba(128, 0, 32, 0.1)' } }}>
-                    <EditIcon />
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleViewDetails(resultado)}
+                        sx={{ '&:hover': { backgroundColor: 'rgba(128, 0, 32, 0.1)' } }}
+                        title="Ver detalles"
+                      >
+                        <VisibilityIcon />
                   </IconButton>
-                  <IconButton onClick={() => handleDelete(index)} color="error" sx={{ '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.1)' } }}>
-                    <DeleteIcon />
-                  </IconButton>
+                    </Box>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </Paper>
+      )}
 
-      <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-        <Modal open={openModal} onClose={handleCloseModal}>
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 400,
-              bgcolor: '#FFFFFF',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
-              p: 4,
-              borderRadius: '12px',
-              fontFamily: "'Arial', 'Helvetica', sans-serif",
-            }}
+      {/* Modal de Detalles */}
+      <Dialog 
+        open={modalDetallesOpen} 
+        onClose={handleCloseModal}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ backgroundColor: '#800020', color: '#FFFFFF' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TrophyIcon />
+            Detalles del Resultado
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          {resultadoSeleccionado && (
+            <Grid container spacing={3}>
+              {/* Información del Atleta */}
+              <Grid item xs={12}>
+                <Card variant="outlined" sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ color: '#800020', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <PersonIcon />
+                      Información del Atleta
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="textSecondary">Nombre:</Typography>
+                        <Typography variant="body1">{resultadoSeleccionado.nombreAtleta}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="textSecondary">Categoría:</Typography>
+                        <Typography variant="body1">{resultadoSeleccionado.categoria}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="textSecondary">Sexo:</Typography>
+                        <Typography variant="body1">{resultadoSeleccionado.sexo}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="textSecondary">Municipio:</Typography>
+                        <Typography variant="body1">{resultadoSeleccionado.municipio}</Typography>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Información del Evento */}
+              <Grid item xs={12}>
+                <Card variant="outlined" sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ color: '#800020', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CalendarIcon />
+                      Información del Evento
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="textSecondary">Evento:</Typography>
+                        <Typography variant="body1">{resultadoSeleccionado.nombreEvento}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="textSecondary">Fecha:</Typography>
+                        <Typography variant="body1">{formatDate(resultadoSeleccionado.fechaEvento)}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="textSecondary">Convocatoria:</Typography>
+                        <Typography variant="body1">#{parseInt(resultadoSeleccionado.convocatoriaIndex) + 1}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="textSecondary">Año Competitivo:</Typography>
+                        <Typography variant="body1">{resultadoSeleccionado.añoCompetitivo}</Typography>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Pruebas y Marcas */}
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="h6" sx={{ color: '#800020', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <TrophyIcon />
+                      Pruebas y Marcas
+                    </Typography>
+                    <Grid container spacing={2}>
+                      {resultadoSeleccionado.pruebas && resultadoSeleccionado.pruebas.map((prueba, index) => (
+                        <Grid item xs={12} md={6} key={index}>
+                          <Card variant="outlined" sx={{ p: 2, backgroundColor: '#FAFAFA' }}>
+                            <Typography variant="subtitle2" color="textSecondary">
+                              Prueba {index + 1}:
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                              {prueba.nombre || 'Sin nombre'}
+                            </Typography>
+                            <Typography variant="h6" sx={{ color: '#800020' }}>
+                              {prueba.marca || '0'} {prueba.unidad || ''}
+                            </Typography>
+                          </Card>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Información Adicional */}
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="h6" sx={{ color: '#800020', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <LocationIcon />
+                      Información Adicional
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="textSecondary">Club:</Typography>
+                        <Typography variant="body1">{resultadoSeleccionado.club}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="textSecondary">Lugar de Entrenamiento:</Typography>
+                        <Typography variant="body1">{resultadoSeleccionado.lugarEntrenamiento}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="textSecondary">Fecha de Registro:</Typography>
+                        <Typography variant="body1">{formatDate(resultadoSeleccionado.fechaRegistro)}</Typography>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={handleCloseModal}
+            variant="outlined"
+            sx={{ color: '#800020', borderColor: '#800020' }}
           >
-            <Typography variant="h6" gutterBottom sx={{ color: '#800020', fontWeight: 'bold' }}>
-              {editIndex !== null ? 'Editar Resultado' : 'Agregar Resultado'}
-            </Typography>
-            <TextField
-              fullWidth
-              label="Evento"
-              name="evento"
-              value={formData.evento}
-              onChange={(e) => setFormData({ ...formData, evento: e.target.value })}
-              sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#FAFAFF', '&:hover fieldset': { borderColor: '#7A4069' }, '&.Mui-focused fieldset': { borderColor: '#7A4069', boxShadow: '0 0 8px rgba(122, 64, 105, 0.3)' } }, '& .MuiInputLabel-root': { color: '#7A4069', fontWeight: '500' }, '& .MuiInputLabel-root.Mui-focused': { color: '#7A4069' } }}
-            />
-            <TextField
-              fullWidth
-              label="Atleta"
-              name="atleta"
-              value={formData.atleta}
-              onChange={(e) => setFormData({ ...formData, atleta: e.target.value })}
-              sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#FAFAFF', '&:hover fieldset': { borderColor: '#7A4069' }, '&.Mui-focused fieldset': { borderColor: '#7A4069', boxShadow: '0 0 8px rgba(122, 64, 105, 0.3)' } }, '& .MuiInputLabel-root': { color: '#7A4069', fontWeight: '500' }, '& .MuiInputLabel-root.Mui-focused': { color: '#7A4069' } }}
-            />
-            <TextField
-              fullWidth
-              label="Posición"
-              name="posicion"
-              value={formData.posicion}
-              onChange={(e) => setFormData({ ...formData, posicion: e.target.value })}
-              sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#FAFAFF', '&:hover fieldset': { borderColor: '#7A4069' }, '&.Mui-focused fieldset': { borderColor: '#7A4069', boxShadow: '0 0 8px rgba(122, 64, 105, 0.3)' } }, '& .MuiInputLabel-root': { color: '#7A4069', fontWeight: '500' }, '& .MuiInputLabel-root.Mui-focused': { color: '#7A4069' } }}
-            />
-            <TextField
-              fullWidth
-              label="Tiempo (ej. 1:23.45)"
-              name="tiempo"
-              value={formData.tiempo}
-              onChange={(e) => setFormData({ ...formData, tiempo: e.target.value })}
-              sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#FAFAFF', '&:hover fieldset': { borderColor: '#7A4069' }, '&.Mui-focused fieldset': { borderColor: '#7A4069', boxShadow: '0 0 8px rgba(122, 64, 105, 0.3)' } }, '& .MuiInputLabel-root': { color: '#7A4069', fontWeight: '500' }, '& .MuiInputLabel-root.Mui-focused': { color: '#7A4069' } }}
-            />
-            <DatePicker
-              label="Fecha"
-              value={formData.fecha ? new Date(formData.fecha) : null}
-              onChange={(newValue) => setFormData({ ...formData, fecha: newValue })}
-              slotProps={{ textField: { fullWidth: true, sx: { mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px', backgroundColor: '#FAFAFF', '&:hover fieldset': { borderColor: '#7A4069' }, '&.Mui-focused fieldset': { borderColor: '#7A4069', boxShadow: '0 0 8px rgba(122, 64, 105, 0.3)' } }, '& .MuiInputLabel-root': { color: '#7A4069', fontWeight: '500' }, '& .MuiInputLabel-root.Mui-focused': { color: '#7A4069' } } }}}
-            />
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button onClick={handleCloseModal} variant="outlined" sx={{ color: '#7A4069', borderColor: '#7A4069', '&:hover': { borderColor: '#D32F2F', color: '#D32F2F' } }}>
-                Cancelar
+            Cerrar
               </Button>
               <Button
-                onClick={handleAddOrEdit}
+            onClick={() => handleDownloadPDF(resultadoSeleccionado)}
                 variant="contained"
-                sx={{
-                  background: '#800020',
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  fontWeight: 'bold',
-                  '&:hover': {
-                    background: '#7A4069',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 4px 12px rgba(122, 64, 105, 0.3)',
-                  },
-                }}
-              >
-                Guardar
+            startIcon={<PdfIcon />}
+            sx={{ backgroundColor: '#800020', '&:hover': { backgroundColor: '#600018' } }}
+          >
+            Descargar PDF
               </Button>
-            </Box>
-          </Box>
-        </Modal>
-      </LocalizationProvider>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

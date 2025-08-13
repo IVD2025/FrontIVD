@@ -16,6 +16,9 @@ import IconButton from '@mui/material/IconButton';
 import PeopleIcon from '@mui/icons-material/People';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+import GestureIcon from '@mui/icons-material/Gesture';
 import { 
   CircularProgress, 
   Typography, 
@@ -31,7 +34,10 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  Collapse,
+  IconButton as MuiIconButton,
+  Tooltip
 } from '@mui/material';
 
 const MySwal = withReactContent(Swal);
@@ -67,12 +73,17 @@ const AgregarEvento = () => {
     hora: '',
     lugar: '',
     descripcion: '',
-    disciplina: '',
-    categoria: '',
-    edadMin: '',
-    edadMax: '',
-    genero: 'mixto',
   });
+  const [convocatorias, setConvocatorias] = useState([
+    {
+      disciplina: '',
+      categoria: '',
+      edadMin: '',
+      edadMax: '',
+      genero: 'mixto',
+    }
+  ]);
+  const [showConvocatoriasForm, setShowConvocatoriasForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [modalParticipantesOpen, setModalParticipantesOpen] = useState(false);
   const [modalEventoOpen, setModalEventoOpen] = useState(false);
@@ -84,6 +95,8 @@ const AgregarEvento = () => {
   const [modalPDFOpen, setModalPDFOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState('');
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [modalConvocatoriasOpen, setModalConvocatoriasOpen] = useState(false);
+  const [eventoConvocatorias, setEventoConvocatorias] = useState(null);
 
   // Cargar eventos al montar el componente
   useEffect(() => {
@@ -122,66 +135,116 @@ const AgregarEvento = () => {
     }
   };
 
-  const handleCategoriaChange = (e) => {
+  const handleCategoriaChange = (index, e) => {
     const cat = categorias.find(c => c.nombre === e.target.value);
-    setEvento({
-      ...evento,
+    const nuevasConvocatorias = [...convocatorias];
+    nuevasConvocatorias[index] = {
+      ...nuevasConvocatorias[index],
       categoria: cat.nombre,
       edadMin: cat.min,
       edadMax: cat.max,
-    });
+    };
+    setConvocatorias(nuevasConvocatorias);
   };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEvento({ ...evento, [name]: value });
   };
 
+  const handleConvocatoriaChange = (index, e) => {
+    const { name, value } = e.target;
+    const nuevasConvocatorias = [...convocatorias];
+    nuevasConvocatorias[index] = {
+      ...nuevasConvocatorias[index],
+      [name]: value,
+    };
+    setConvocatorias(nuevasConvocatorias);
+  };
+
+  const addConvocatoria = () => {
+    setConvocatorias([
+      ...convocatorias,
+      {
+        disciplina: '',
+        categoria: '',
+        edadMin: '',
+        edadMax: '',
+        genero: 'mixto',
+      }
+    ]);
+  };
+
+  const removeConvocatoria = (index) => {
+    if (convocatorias.length > 1) {
+      const nuevasConvocatorias = convocatorias.filter((_, i) => i !== index);
+      setConvocatorias(nuevasConvocatorias);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     // Validación frontend
-    const camposRequeridos = ['titulo', 'fecha', 'hora', 'lugar', 'disciplina', 'categoria', 'genero', 'edadMin', 'edadMax'];
-    for (const campo of camposRequeridos) {
-      if (!evento[campo] || evento[campo] === '') {
+    if (!evento.titulo || !evento.fecha || !evento.hora || !evento.lugar) {
+      MySwal.fire({
+        title: 'Error!',
+        text: 'Todos los campos del evento son requeridos',
+        icon: 'error',
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
+
+    // Validar convocatorias
+    for (let i = 0; i < convocatorias.length; i++) {
+      const conv = convocatorias[i];
+      if (!conv.disciplina || !conv.categoria || !conv.genero || !conv.edadMin || !conv.edadMax) {
         MySwal.fire({
           title: 'Error!',
-          text: 'Todos los campos son requeridos excepto descripción',
+          text: `Convocatoria ${i + 1}: Todos los campos son requeridos`,
           icon: 'error',
           confirmButtonText: 'OK',
         });
         return;
       }
     }
-    if (isNaN(Number(evento.edadMin)) || isNaN(Number(evento.edadMax))) {
-      MySwal.fire({
-        title: 'Error!',
-        text: 'La edad mínima y máxima deben ser números válidos.',
-        icon: 'error',
-        confirmButtonText: 'OK',
-      });
-      return;
-    }
+
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/eventos', evento);
+      const eventoData = {
+        ...evento,
+        convocatorias: convocatorias
+      };
+
+      const response = await axios.post('http://localhost:5000/api/eventos', eventoData);
       if (response.status === 201) {
         MySwal.fire({
           title: 'Éxito!',
-          text: 'El evento ha sido creado correctamente.',
+          text: 'El evento ha sido creado correctamente con todas sus convocatorias.',
           icon: 'success',
           confirmButtonText: 'OK',
         });
+        
+        // Resetear formularios
         setEvento({
           titulo: '',
           fecha: '',
           hora: '',
           lugar: '',
           descripcion: '',
-          disciplina: '',
-          categoria: '',
-          edadMin: '',
-          edadMax: '',
-          genero: 'mixto',
         });
+        setConvocatorias([
+          {
+            disciplina: '',
+            categoria: '',
+            edadMin: '',
+            edadMax: '',
+            genero: 'mixto',
+          }
+        ]);
+        setShowConvocatoriasForm(false);
+        
         // Recargar eventos después de crear uno nuevo
         await cargarEventos();
       }
@@ -237,7 +300,22 @@ const AgregarEvento = () => {
 
   const handleCerrarPDF = () => {
       setModalPDFOpen(false);
-        setEventoSeleccionado(null);
+      setEventoSeleccionado(null);
+  };
+
+  const handleCerrarParticipantes = () => {
+      setModalParticipantesOpen(false);
+      setEventoSeleccionado(null);
+  };
+
+  const handleCerrarEvento = () => {
+      setModalEventoOpen(false);
+      setEventoSeleccionado(null);
+  };
+
+  const handleCerrarConvocatorias = () => {
+      setModalConvocatoriasOpen(false);
+      setEventoConvocatorias(null);
   };
 
   const obtenerColorEstado = (estado) => {
@@ -449,6 +527,48 @@ const AgregarEvento = () => {
     }
   };
 
+  const handleVerConvocatorias = (evento) => {
+    setEventoConvocatorias(evento);
+    setModalConvocatoriasOpen(true);
+  };
+
+  const handleVerParticipantesConvocatoria = async (evento, convocatoria, index) => {
+    setEventoSeleccionado({ ...evento, convocatoriaSeleccionada: convocatoria, convocatoriaIndex: index });
+    setModalParticipantesOpen(true);
+    setLoadingParticipantes(true);
+    try {
+      const response = await axios.get(`http://localhost:5000/api/eventos/inscripciones?eventoId=${evento._id}&convocatoriaIndex=${index}`);
+      setParticipantes(response.data);
+    } catch (error) {
+      setParticipantes([]);
+    } finally {
+      setLoadingParticipantes(false);
+    }
+  };
+
+  const handleVerEventoConvocatoria = (evento, convocatoria, index) => {
+    setEventoSeleccionado({ ...evento, convocatoriaSeleccionada: convocatoria, convocatoriaIndex: index });
+    setModalEventoOpen(true);
+  };
+
+  const handleVerPDFConvocatoria = (evento, convocatoria, index) => {
+    try {
+      setPdfLoading(true);
+      setEventoSeleccionado({ ...evento, convocatoriaSeleccionada: convocatoria, convocatoriaIndex: index });
+      setModalPDFOpen(true);
+    } catch (error) {
+      console.error('Error al abrir modal PDF:', error);
+      MySwal.fire({
+        title: 'Error!',
+        text: 'Error al abrir la convocatoria en PDF',
+        icon: 'error',
+        confirmButtonText: 'OK',
+      });
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Gestión de Eventos</h2>
@@ -515,78 +635,152 @@ const AgregarEvento = () => {
               placeholder="Detalles del evento (opcional)"
             />
           </div>
+          {/* Botón para mostrar/ocultar formulario de convocatorias */}
           <div style={styles.formGroup}>
-            <label style={styles.label}>Disciplina</label>
-            <select
-              name="disciplina"
-              value={evento.disciplina}
-              onChange={handleChange}
-              required
-              style={styles.input}
+            <Button
+              variant="outlined"
+              onClick={() => setShowConvocatoriasForm(!showConvocatoriasForm)}
+              startIcon={<GestureIcon />}
+              sx={{
+                color: '#800020',
+                borderColor: '#800020',
+                '&:hover': {
+                  borderColor: '#800020',
+                  backgroundColor: 'rgba(128, 0, 32, 0.04)'
+                }
+              }}
             >
-              <option value="">Seleccione una disciplina</option>
-              {disciplinas.map((disc, index) => (
-                <option key={index} value={disc}>{disc}</option>
+              {showConvocatoriasForm ? 'Ocultar Convocatorias' : 'Agregar Convocatorias'}
+            </Button>
+          </div>
+
+          {/* Formulario de convocatorias */}
+          <Collapse in={showConvocatoriasForm}>
+            <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#fafafa' }}>
+              <Typography variant="h6" sx={{ color: '#800020', mb: 2 }}>
+                🎯 Convocatorias del Evento
+              </Typography>
+              
+              {convocatorias.map((convocatoria, index) => (
+                <Box key={index} sx={{ mb: 3, p: 2, border: '1px solid #ddd', borderRadius: 1, backgroundColor: 'white' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ color: '#800020', fontWeight: 'bold' }}>
+                      Convocatoria {index + 1}
+                    </Typography>
+                    {convocatorias.length > 1 && (
+                      <Tooltip title="Eliminar convocatoria">
+                        <MuiIconButton
+                          onClick={() => removeConvocatoria(index)}
+                          color="error"
+                          size="small"
+                        >
+                          <RemoveIcon />
+                        </MuiIconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <label style={styles.label}>Disciplina</label>
+                      <select
+                        name="disciplina"
+                        value={convocatoria.disciplina}
+                        onChange={(e) => handleConvocatoriaChange(index, e)}
+                        required
+                        style={styles.input}
+                      >
+                        <option value="">Seleccione una disciplina</option>
+                        {disciplinas.map((disc, discIndex) => (
+                          <option key={discIndex} value={disc}>{disc}</option>
+                        ))}
+                      </select>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <label style={styles.label}>Categoría</label>
+                      <select
+                        name="categoria"
+                        value={convocatoria.categoria}
+                        onChange={(e) => handleCategoriaChange(index, e)}
+                        required
+                        style={styles.input}
+                      >
+                        <option value="">Seleccione una categoría</option>
+                        {categorias.map((cat, catIndex) => (
+                          <option key={catIndex} value={cat.nombre}>{cat.nombre}</option>
+                        ))}
+                      </select>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <label style={styles.label}>Edad mínima</label>
+                      <input
+                        type="number"
+                        name="edadMin"
+                        value={convocatoria.edadMin}
+                        onChange={(e) => handleConvocatoriaChange(index, e)}
+                        min={12}
+                        max={35}
+                        required
+                        style={styles.input}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <label style={styles.label}>Edad máxima</label>
+                      <input
+                        type="number"
+                        name="edadMax"
+                        value={convocatoria.edadMax}
+                        onChange={(e) => handleConvocatoriaChange(index, e)}
+                        min={convocatoria.edadMin || 12}
+                        max={35}
+                        required
+                        style={styles.input}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <label style={styles.label}>Género</label>
+                      <select
+                        name="genero"
+                        value={convocatoria.genero}
+                        onChange={(e) => handleConvocatoriaChange(index, e)}
+                        required
+                        style={styles.input}
+                      >
+                        {generos.map((g, gIndex) => (
+                          <option key={gIndex} value={g.value}>{g.label}</option>
+                        ))}
+                      </select>
+                    </Grid>
+                  </Grid>
+                </Box>
               ))}
-            </select>
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Categoría</label>
-            <select
-              name="categoria"
-              value={evento.categoria}
-              onChange={handleCategoriaChange}
-              required
-              style={styles.input}
-            >
-              <option value="">Seleccione una categoría</option>
-              {categorias.map((cat, index) => (
-                <option key={index} value={cat.nombre}>{cat.nombre}</option>
-              ))}
-            </select>
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Edad mínima</label>
-            <input
-              type="number"
-              name="edadMin"
-              value={evento.edadMin}
-              onChange={handleChange}
-              min={12}
-              max={35}
-              required
-              style={styles.input}
-            />
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Edad máxima</label>
-            <input
-              type="number"
-              name="edadMax"
-              value={evento.edadMax}
-              onChange={handleChange}
-              min={evento.edadMin || 12}
-              max={35}
-              required
-              style={styles.input}
-            />
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Género</label>
-            <select
-              name="genero"
-              value={evento.genero}
-              onChange={handleChange}
-              required
-              style={styles.input}
-            >
-              {generos.map((g, index) => (
-                <option key={index} value={g.value}>{g.label}</option>
-              ))}
-            </select>
-          </div>
+              
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Button
+                  variant="outlined"
+                  onClick={addConvocatoria}
+                  startIcon={<AddIcon />}
+                  sx={{
+                    color: '#800020',
+                    borderColor: '#800020',
+                    '&:hover': {
+                      borderColor: '#800020',
+                      backgroundColor: 'rgba(128, 0, 32, 0.04)'
+                    }
+                  }}
+                >
+                  Agregar Otra Convocatoria
+                </Button>
+              </Box>
+            </Box>
+          </Collapse>
+
           <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? 'Guardando...' : 'Crear Evento'}
+            {loading ? 'Guardando...' : 'Crear Evento con Convocatorias'}
           </button>
         </form>
       </Paper>
@@ -612,10 +806,7 @@ const AgregarEvento = () => {
                 <TableCell><strong>Evento</strong></TableCell>
                 <TableCell><strong>Fecha</strong></TableCell>
                 <TableCell><strong>Lugar</strong></TableCell>
-                <TableCell><strong>Disciplina</strong></TableCell>
-                <TableCell><strong>Categoría</strong></TableCell>
-                <TableCell><strong>Estado</strong></TableCell>
-                <TableCell><strong>Acciones</strong></TableCell>
+                <TableCell><strong>Convocatorias</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -628,43 +819,23 @@ const AgregarEvento = () => {
                   </TableCell>
                   <TableCell>{formatearFecha(evento.fecha || evento.createdAt)}</TableCell>
                   <TableCell>{evento.lugar}</TableCell>
-                  <TableCell>{evento.disciplina}</TableCell>
-                  <TableCell>{evento.categoria}</TableCell>
                   <TableCell>
-                    <Chip 
-                      label={obtenerTextoEstado(evento.estado)} 
-                      color={obtenerColorEstado(evento.estado)}
+                    <Button
+                      variant="outlined"
+                      onClick={() => handleVerConvocatorias(evento)}
+                      startIcon={<PeopleIcon />}
                       size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Box display="flex" gap={1}>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleVerEvento(evento)}
-                        color="primary"
-                        title="Ver detalles del evento"
-                      >
-                        <VisibilityIcon />
-                      </IconButton>
-                            <IconButton 
-        size="small" 
-        onClick={() => handleVerPDF(evento)}
-        color="success"
-        title="Ver completo en PDF"
-        disabled={pdfLoading}
-      >
-        {pdfLoading ? <CircularProgress size={20} /> : <PictureAsPdfIcon />}
-      </IconButton>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleVerParticipantes(evento)}
-                        color="secondary"
-                        title="Ver participantes"
-                      >
-                        <PeopleIcon />
-                      </IconButton>
-                    </Box>
+                      sx={{
+                        color: '#800020',
+                        borderColor: '#800020',
+                        '&:hover': {
+                          borderColor: '#800020',
+                          backgroundColor: 'rgba(128, 0, 32, 0.04)'
+                        }
+                      }}
+                    >
+                      Ver Convocatorias ({evento.convocatorias ? evento.convocatorias.length : 0})
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -674,14 +845,21 @@ const AgregarEvento = () => {
       </Paper>
 
       {/* Modal de Participantes */}
-      <Dialog open={modalParticipantesOpen} onClose={() => setModalParticipantesOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Participantes de "{eventoSeleccionado?.titulo}"</DialogTitle>
+      <Dialog open={modalParticipantesOpen} onClose={handleCerrarParticipantes} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Participantes de "{eventoSeleccionado?.titulo}"
+          {eventoSeleccionado?.convocatoriaSeleccionada && (
+            <Typography variant="subtitle2" sx={{ color: '#800020', mt: 1 }}>
+              Convocatoria: {eventoSeleccionado.convocatoriaSeleccionada.disciplina} - {eventoSeleccionado.convocatoriaSeleccionada.categoria}
+            </Typography>
+          )}
+        </DialogTitle>
         <DialogContent>
           {loadingParticipantes ? (
             <CircularProgress />
           ) : participantes.length === 0 ? (
             <Typography variant="body2" sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
-              No hay participantes inscritos en este evento.
+              No hay participantes inscritos en esta convocatoria.
             </Typography>
           ) : (
             <List>
@@ -704,15 +882,20 @@ const AgregarEvento = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setModalParticipantesOpen(false)} color="secondary">Cerrar</Button>
+          <Button onClick={handleCerrarParticipantes} color="secondary">Cerrar</Button>
         </DialogActions>
       </Dialog>
 
       {/* Modal de Detalles del Evento */}
-      <Dialog open={modalEventoOpen} onClose={() => setModalEventoOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={modalEventoOpen} onClose={handleCerrarEvento} maxWidth="md" fullWidth>
         <DialogTitle>
           <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
             📋 Detalles del Evento
+            {eventoSeleccionado?.convocatoriaSeleccionada && (
+              <Typography variant="subtitle2" sx={{ color: '#800020', mt: 1 }}>
+                Convocatoria: {eventoSeleccionado.convocatoriaSeleccionada.disciplina} - {eventoSeleccionado.convocatoriaSeleccionada.categoria}
+              </Typography>
+            )}
           </Typography>
         </DialogTitle>
         <DialogContent>
@@ -755,18 +938,38 @@ const AgregarEvento = () => {
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" gutterBottom>🏃 Información Deportiva</Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Disciplina:</strong> {eventoSeleccionado.disciplina}
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Categoría:</strong> {eventoSeleccionado.categoria}
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Rango de Edad:</strong> {eventoSeleccionado.edadMin} - {eventoSeleccionado.edadMax} años
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Género:</strong> {eventoSeleccionado.genero}
-                      </Typography>
+                      {eventoSeleccionado.convocatoriaSeleccionada ? (
+                        <>
+                          <Typography variant="body2" paragraph>
+                            <strong>Disciplina:</strong> {eventoSeleccionado.convocatoriaSeleccionada.disciplina}
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Categoría:</strong> {eventoSeleccionado.convocatoriaSeleccionada.categoria}
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Rango de Edad:</strong> {eventoSeleccionado.convocatoriaSeleccionada.edadMin} - {eventoSeleccionado.convocatoriaSeleccionada.edadMax} años
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Género:</strong> {eventoSeleccionado.convocatoriaSeleccionada.genero === 'mixto' ? 'Mixto' : 
+                                                      eventoSeleccionado.convocatoriaSeleccionada.genero === 'masculino' ? 'Masculino' : 'Femenino'}
+                          </Typography>
+                        </>
+                      ) : (
+                        <>
+                          <Typography variant="body2" paragraph>
+                            <strong>Disciplina:</strong> {eventoSeleccionado.disciplina || 'No especificada'}
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Categoría:</strong> {eventoSeleccionado.categoria || 'No especificada'}
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Rango de Edad:</strong> {eventoSeleccionado.edadMin || 'N/A'} - {eventoSeleccionado.edadMax || 'N/A'} años
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Género:</strong> {eventoSeleccionado.genero || 'No especificado'}
+                          </Typography>
+                        </>
+                      )}
                     </CardContent>
                   </Card>
                 </Grid>
@@ -791,6 +994,11 @@ const AgregarEvento = () => {
                       <Typography variant="body2" paragraph>
                         <strong>ID del Evento:</strong> {eventoSeleccionado._id}
                       </Typography>
+                      {eventoSeleccionado.convocatoriaSeleccionada && (
+                        <Typography variant="body2" paragraph>
+                          <strong>Índice de la Convocatoria:</strong> {eventoSeleccionado.convocatoriaIndex !== undefined ? eventoSeleccionado.convocatoriaIndex + 1 : 'N/A'}
+                        </Typography>
+                      )}
                       <Typography variant="body2" paragraph>
                         <strong>Fecha de Creación:</strong> {formatearFecha(eventoSeleccionado.createdAt)}
                       </Typography>
@@ -805,7 +1013,7 @@ const AgregarEvento = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setModalEventoOpen(false)} color="primary">
+          <Button onClick={handleCerrarEvento} color="primary">
             Cerrar
           </Button>
         </DialogActions>
@@ -821,6 +1029,11 @@ const AgregarEvento = () => {
         <DialogTitle>
           <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
             📄 Convocatoria Oficial en PDF - {eventoSeleccionado?.titulo}
+            {eventoSeleccionado?.convocatoriaSeleccionada && (
+              <Typography variant="subtitle2" sx={{ color: '#800020', mt: 1 }}>
+                Convocatoria: {eventoSeleccionado.convocatoriaSeleccionada.disciplina} - {eventoSeleccionado.convocatoriaSeleccionada.categoria}
+              </Typography>
+            )}
           </Typography>
         </DialogTitle>
         <DialogContent>
@@ -828,6 +1041,11 @@ const AgregarEvento = () => {
             <Box sx={{ textAlign: 'center', p: 2 }}>
               <Typography variant="body1" sx={{ mb: 3 }}>
                 Haz clic en el botón para descargar la convocatoria oficial en formato PDF
+                {eventoSeleccionado.convocatoriaSeleccionada && (
+                  <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                    Esta convocatoria incluirá solo la información específica de la disciplina y categoría seleccionada.
+                  </Typography>
+                )}
               </Typography>
               <Button
                 variant="contained"
@@ -865,6 +1083,98 @@ const AgregarEvento = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCerrarPDF} color="primary">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Convocatorias */}
+      <Dialog open={modalConvocatoriasOpen} onClose={handleCerrarConvocatorias} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
+            🎯 Convocatorias del Evento: {eventoConvocatorias?.titulo}
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          {eventoConvocatorias && eventoConvocatorias.convocatorias ? (
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>Disciplina</strong></TableCell>
+                  <TableCell><strong>Categoría</strong></TableCell>
+                  <TableCell><strong>Rango de Edad</strong></TableCell>
+                  <TableCell><strong>Género</strong></TableCell>
+                  <TableCell><strong>Estado</strong></TableCell>
+                  <TableCell><strong>Acciones</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {eventoConvocatorias.convocatorias.map((convocatoria, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        {convocatoria.disciplina}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{convocatoria.categoria}</TableCell>
+                    <TableCell>{convocatoria.edadMin} - {convocatoria.edadMax} años</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={convocatoria.genero === 'mixto' ? 'Mixto' : 
+                               convocatoria.genero === 'masculino' ? 'Masculino' : 'Femenino'} 
+                        color={convocatoria.genero === 'mixto' ? 'default' : 
+                               convocatoria.genero === 'masculino' ? 'primary' : 'secondary'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={obtenerTextoEstado(eventoConvocatorias.estado)} 
+                        color={obtenerColorEstado(eventoConvocatorias.estado)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" gap={1}>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleVerEventoConvocatoria(eventoConvocatorias, convocatoria, index)}
+                          color="primary"
+                          title="Ver detalles de la convocatoria"
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleVerPDFConvocatoria(eventoConvocatorias, convocatoria, index)}
+                          color="success"
+                          title="Ver convocatoria en PDF"
+                          disabled={pdfLoading}
+                        >
+                          {pdfLoading ? <CircularProgress size={20} /> : <PictureAsPdfIcon />}
+                        </IconButton>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleVerParticipantesConvocatoria(eventoConvocatorias, convocatoria, index)}
+                          color="secondary"
+                          title="Ver participantes de esta convocatoria"
+                        >
+                          <PeopleIcon />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <Typography variant="body2" sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
+              No hay convocatorias para este evento.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCerrarConvocatorias} color="primary">
             Cerrar
           </Button>
         </DialogActions>

@@ -83,8 +83,8 @@ const EncabezadoEntrenador = () => {
             // Primero hacer logout del contexto para limpiar el estado inmediatamente
             logout();
             
-            // Luego limpiar el almacenamiento
-            localStorage.removeItem('user');
+            // Luego limpiar el almacenamiento (usar sessionStorage para ser consistente con AuthContext)
+            sessionStorage.removeItem('user');
             sessionStorage.removeItem('token');
             
             // Finalmente intentar hacer logout del servidor
@@ -166,7 +166,7 @@ const EncabezadoEntrenador = () => {
           font-size: 1.5rem;
           font-weight: bold;
           margin: 0;
-          font-family: 'Arial', 'Helvetica', sans-serif;
+          font-family: 'Arial', 'Helvetica', sans-serif; /* Tipografía explícita */
         }
 
         .menu ul {
@@ -185,12 +185,18 @@ const EncabezadoEntrenador = () => {
           border-radius: 5px;
           transition: background-color 0.3s ease;
           position: relative;
-          font-family: 'Arial', 'Helvetica', sans-serif;
+          font-family: 'Arial', 'Helvetica', sans-serif; /* Tipografía explícita */
         }
 
         .menu ul li:hover {
           background-color: #F5E8C7;
           color: #333333;
+        }
+
+        .menu ul li.active {
+          background-color: #7A4069; /* Morado medio - Color activo estandarizado */
+          color: #FFFFFF;
+          border-radius: 5px;
         }
 
         .menu ul .dropdown {

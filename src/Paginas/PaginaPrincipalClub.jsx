@@ -163,7 +163,7 @@ const PaginaPrincipalClub = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh' }}>
       <Typography variant="h4" align="center" gutterBottom sx={{ color: '#800020', fontWeight: 'bold', mb: 4 }}>
-        🏆 Dashboard del Club - {club?.nombre}
+        Dashboard del Club - {club?.nombre}
       </Typography>
 
       {/* Información del club */}
@@ -417,6 +417,11 @@ const PaginaPrincipalClub = () => {
                           <Typography variant="body2" color="textSecondary">
                             <strong>Disciplina:</strong> {evento.disciplina} • <strong>Categoría:</strong> {evento.categoria}
                           </Typography>
+                          {evento.convocatorias && evento.convocatorias.length > 0 && (
+                            <Typography variant="body2" color="textSecondary">
+                              <strong>Convocatorias:</strong> {evento.convocatorias.length} disponible{evento.convocatorias.length !== 1 ? 's' : ''}
+                            </Typography>
+                          )}
                         </Box>
                       }
                     />
@@ -482,18 +487,38 @@ const PaginaPrincipalClub = () => {
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" gutterBottom>🏃 Información Deportiva</Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Disciplina:</strong> {eventoSeleccionado.disciplina}
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Categoría:</strong> {eventoSeleccionado.categoria}
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Rango de Edad:</strong> {eventoSeleccionado.edadMin} - {eventoSeleccionado.edadMax} años
-                      </Typography>
-                      <Typography variant="body2" paragraph>
-                        <strong>Género:</strong> {eventoSeleccionado.genero}
-                      </Typography>
+                      {eventoSeleccionado.convocatorias && eventoSeleccionado.convocatorias.length > 0 ? (
+                        <>
+                          <Typography variant="body2" paragraph>
+                            <strong>Disciplina:</strong> {eventoSeleccionado.convocatorias[0].disciplina}
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Categoría:</strong> {eventoSeleccionado.convocatorias[0].categoria}
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Rango de Edad:</strong> {eventoSeleccionado.convocatorias[0].edadMin} - {eventoSeleccionado.convocatorias[0].edadMax} años
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Género:</strong> {eventoSeleccionado.convocatorias[0].genero === 'mixto' ? 'Mixto' : 
+                                                      eventoSeleccionado.convocatorias[0].genero === 'masculino' ? 'Masculino' : 'Femenino'}
+                          </Typography>
+                        </>
+                      ) : (
+                        <>
+                          <Typography variant="body2" paragraph>
+                            <strong>Disciplina:</strong> {eventoSeleccionado.disciplina || 'No especificada'}
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Categoría:</strong> {eventoSeleccionado.categoria || 'No especificada'}
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Rango de Edad:</strong> {eventoSeleccionado.edadMin || 'N/A'} - {eventoSeleccionado.edadMax || 'N/A'} años
+                          </Typography>
+                          <Typography variant="body2" paragraph>
+                            <strong>Género:</strong> {eventoSeleccionado.genero || 'No especificado'}
+                          </Typography>
+                        </>
+                      )}
                     </CardContent>
                   </Card>
                 </Grid>
@@ -518,6 +543,11 @@ const PaginaPrincipalClub = () => {
                       <Typography variant="body2" paragraph>
                         <strong>ID del Evento:</strong> {eventoSeleccionado._id}
                       </Typography>
+                      {eventoSeleccionado.convocatorias && eventoSeleccionado.convocatorias.length > 0 && (
+                        <Typography variant="body2" paragraph>
+                          <strong>Total de Convocatorias:</strong> {eventoSeleccionado.convocatorias.length}
+                        </Typography>
+                      )}
                       <Typography variant="body2" paragraph>
                         <strong>Fecha de Creación:</strong> {formatearFecha(eventoSeleccionado.createdAt)}
                       </Typography>

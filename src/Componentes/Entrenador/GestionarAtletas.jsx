@@ -110,7 +110,7 @@ const GestionarAtletas = () => {
       </style>
       <Container maxWidth="xl" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh' }}>
       <Typography variant="h4" align="center" gutterBottom sx={{ color: '#800020', fontWeight: 'bold', mb: 4 }}>
-        🏃 Gestionar Atletas Asignados
+        Gestionar Atletas Asignados
       </Typography>
 
       {error && (
@@ -125,56 +125,6 @@ const GestionarAtletas = () => {
           Total de Atletas: {atletas.length}
         </Typography>
         <Box>
-          <Button
-            variant="outlined"
-            onClick={async () => {
-              try {
-                const response = await axios.get(`http://localhost:5000/api/entrenador/debug/${user.id}`);
-                console.log('Debug response:', response.data);
-                alert(`Debug Info:\nEntrenador: ${response.data.entrenador.nombre}\nClub: ${response.data.club?.nombre || 'Sin club'}\nAtletas en club: ${response.data.atletasEnClub}\nTotal atletas: ${response.data.totalAtletas}`);
-              } catch (error) {
-                console.error('Error en debug:', error);
-                alert('Error en debug: ' + (error.response?.data?.error || error.message));
-              }
-            }}
-            sx={{ mr: 1, color: '#800020', borderColor: '#800020' }}
-          >
-            🔍 Debug
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={async () => {
-              try {
-                const response = await axios.get('http://localhost:5000/api/entrenador/verificar-estructura');
-                console.log('Estructura response:', response.data);
-                alert(`Estructura DB:\nEntrenadores: ${response.data.totalEntrenadores} (${response.data.entrenadoresConClub} con club)\nAtletas: ${response.data.totalAtletas} (${response.data.atletasConClub} con club)\nClubes: ${response.data.totalClubes}`);
-              } catch (error) {
-                console.error('Error en estructura:', error);
-                alert('Error en estructura: ' + (error.response?.data?.error || error.message));
-              }
-            }}
-            sx={{ mr: 1, color: '#7A4069', borderColor: '#7A4069' }}
-          >
-            🏗️ Estructura
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={async () => {
-              try {
-                const response = await axios.get(`http://localhost:5000/api/entrenador/verificar-relacion/${user.id}`);
-                console.log('Relación response:', response.data);
-                const stats = response.data.estadisticas;
-                const atletasMismoClub = response.data.atletasMismoClub;
-                alert(`Relación Entrenador-Atletas:\n\nEntrenador: ${response.data.entrenador.nombre}\nClubId: ${response.data.entrenador.clubIdString}\n\nEstadísticas:\nTotal atletas: ${stats.totalAtletas}\nAtletas con club: ${stats.atletasConClub}\nAtletas mismo club: ${stats.atletasMismoClub}\n\nAtletas encontrados: ${atletasMismoClub.map(a => a.nombre).join(', ')}`);
-              } catch (error) {
-                console.error('Error en relación:', error);
-                alert('Error en relación: ' + (error.response?.data?.error || error.message));
-              }
-            }}
-            sx={{ mr: 1, color: '#FF6B35', borderColor: '#FF6B35' }}
-          >
-            🔗 Relación
-          </Button>
           <Button
             variant={viewMode === 'table' ? 'contained' : 'outlined'}
             onClick={() => setViewMode('table')}

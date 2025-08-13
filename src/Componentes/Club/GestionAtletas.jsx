@@ -284,7 +284,7 @@ const GestionAtletas = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4, background: '#F5E8C7', minHeight: '100vh' }}>
       <Typography variant="h4" align="center" gutterBottom sx={{ color: '#800020', fontWeight: 'bold', mb: 4 }}>
-        🏆 Gestionar
+        Gestionar
       </Typography>
 
       {error && (
@@ -438,13 +438,13 @@ const GestionAtletas = () => {
                   color="success" 
                   size="small"
                 />
-              )}
+        )}
       </Box>
 
             {atletas.length === 0 ? (
               <Alert severity="info">
                 No hay atletas registrados en este club.
-              </Alert>
+          </Alert>
             ) : (
               <TableContainer>
         <Table>
@@ -471,7 +471,7 @@ const GestionAtletas = () => {
                             <Typography variant="body2">
                               {atleta.nombre} {atleta.apellidopa} {atleta.apellidoma}
                             </Typography>
-                          </Box>
+        </Box>
                         </TableCell>
                         <TableCell>{atleta.curp || 'N/A'}</TableCell>
                         <TableCell>{atleta.telefono || 'N/A'}</TableCell>
@@ -602,8 +602,8 @@ const GestionAtletas = () => {
                             color="error"
                             onClick={() => handleRechazarSolicitudEntrenador(solicitud._id)}
                             title="Rechazar solicitud"
-                            sx={{ 
-                              '&:hover': { 
+          sx={{
+            '&:hover': {
                                 backgroundColor: 'rgba(244, 67, 54, 0.1)' 
                               } 
                             }}
@@ -634,7 +634,7 @@ const GestionAtletas = () => {
                     size="small"
                   />
                 )}
-              </Box>
+      </Box>
 
               {entrenadores.length === 0 ? (
                 <Alert severity="info">
@@ -642,19 +642,19 @@ const GestionAtletas = () => {
                 </Alert>
               ) : (
                 <TableContainer>
-                  <Table>
-                    <TableHead>
+        <Table>
+          <TableHead>
                       <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                         <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Nombre Completo</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Email</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Teléfono</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Especialidades</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Años de Experiencia</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Estado</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Acciones</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
+              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Estado</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', color: '#800020' }}>Acciones</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
                       {entrenadores.map((entrenador) => (
                         <TableRow key={entrenador._id} sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}>
                           <TableCell>
@@ -684,7 +684,7 @@ const GestionAtletas = () => {
                               size="small"
                             />
                           </TableCell>
-                          <TableCell>
+                <TableCell>
                             <IconButton
                               color="error"
                               onClick={() => handleExpulsarEntrenador(entrenador)}
@@ -696,15 +696,15 @@ const GestionAtletas = () => {
                               }}
                             >
                               <PersonRemoveIcon />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
                 </TableContainer>
               )}
-            </Paper>
+      </Paper>
           </Grid>
         </Grid>
       )}
@@ -774,16 +774,16 @@ const GestionAtletas = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={cancelarExpulsionEntrenador} color="primary">
-            Cancelar
-          </Button>
-          <Button
+              Cancelar
+            </Button>
+            <Button
             onClick={confirmarExpulsionEntrenador} 
             color="error" 
-            variant="contained"
+              variant="contained"
             startIcon={<PersonRemoveIcon />}
           >
             Confirmar Expulsión
-          </Button>
+            </Button>
         </DialogActions>
       </Dialog>
     </Container>
