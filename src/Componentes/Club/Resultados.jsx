@@ -64,7 +64,7 @@ const Resultados = () => {
       console.log('🔍 Usuario:', user);
       
       // Obtener resultados del club específico
-      const response = await axios.get(`http://localhost:5000/api/resultados/club/${user.id}`);
+              const response = await axios.get(`https://backendivd-mbok.onrender.com/api/resultados/club/${user.id}`);
       console.log('📊 Respuesta de la API:', response.data);
       
       const sortedResultados = response.data.sort((a, b) => new Date(b.fechaEvento) - new Date(a.fechaEvento));
@@ -88,7 +88,7 @@ const Resultados = () => {
 
   const fetchLogo = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/configuracion/logo');
+              const response = await axios.get('https://backendivd-mbok.onrender.com/api/configuracion/logo');
       if (response.data && response.data.logoUrl) {
         console.log('✅ Logo cargado exitosamente:', response.data.logoUrl);
         setLogoUrl(response.data.logoUrl);

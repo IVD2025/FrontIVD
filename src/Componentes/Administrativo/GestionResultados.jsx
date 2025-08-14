@@ -71,23 +71,23 @@ const GestionResultados = () => {
       setLoading(true);
       
       // Cargar eventos
-      const eventosRes = await axios.get('http://localhost:5000/api/eventos');
+      const eventosRes = await axios.get('https://backendivd-mbok.onrender.com/api/eventos');
       setEventos(eventosRes.data);
-      
+
       // Cargar resultados existentes
-      const resultadosRes = await axios.get('http://localhost:5000/api/resultados');
+      const resultadosRes = await axios.get('https://backendivd-mbok.onrender.com/api/resultados');
       setResultados(resultadosRes.data);
       
       // Cargar atletas
-      const atletasRes = await axios.get('http://localhost:5000/api/registros?rol=atleta');
+      const atletasRes = await axios.get('https://backendivd-mbok.onrender.com/api/registros?rol=atleta');
       setAtletas(atletasRes.data);
-      
+
       // Cargar entrenadores
-      const entrenadoresRes = await axios.get('http://localhost:5000/api/registros?rol=entrenador');
+      const entrenadoresRes = await axios.get('https://backendivd-mbok.onrender.com/api/registros?rol=entrenador');
       setEntrenadores(entrenadoresRes.data);
       
       // Cargar clubes
-      const clubesRes = await axios.get('http://localhost:5000/api/clubes');
+      const clubesRes = await axios.get('https://backendivd-mbok.onrender.com/api/clubes');
       setClubes(clubesRes.data);
       
     } catch (error) {
@@ -125,11 +125,11 @@ const GestionResultados = () => {
 
       if (editMode && resultadoSeleccionado) {
         // Actualizar resultado existente
-        await axios.put(`http://localhost:5000/api/resultados/${resultadoSeleccionado._id}`, formData);
+        await axios.put(`https://backendivd-mbok.onrender.com/api/resultados/${resultadoSeleccionado._id}`, formData);
         setSuccess('Resultado actualizado correctamente');
       } else {
         // Crear nuevo resultado
-        await axios.post('http://localhost:5000/api/resultados', formData);
+                  await axios.post('https://backendivd-mbok.onrender.com/api/resultados', formData);
         setSuccess('Resultado creado correctamente');
       }
 
@@ -195,7 +195,7 @@ const GestionResultados = () => {
 
     if (result.isConfirmed) {
       try {
-        await axios.delete(`http://localhost:5000/api/resultados/${resultadoId}`);
+        await axios.delete(`https://backendivd-mbok.onrender.com/api/resultados/${resultadoId}`);
         await cargarDatos();
         setSuccess('Resultado eliminado correctamente');
         
@@ -278,13 +278,13 @@ const GestionResultados = () => {
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
           {error}
-        </Alert>
+          </Alert>
       )}
 
       {success && (
         <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess('')}>
           {success}
-        </Alert>
+          </Alert>
       )}
 
       {/* Botón para agregar nuevo resultado */}
@@ -313,32 +313,32 @@ const GestionResultados = () => {
             No hay resultados registrados. Agrega el primer resultado de un evento.
           </Alert>
         ) : (
-          <Table>
-            <TableHead>
-              <TableRow>
+        <Table>
+          <TableHead>
+            <TableRow>
                 <TableCell><strong>Evento</strong></TableCell>
                 <TableCell><strong>Atleta</strong></TableCell>
                 <TableCell><strong>Categoría</strong></TableCell>
                 <TableCell><strong>Club</strong></TableCell>
                 <TableCell><strong>Año</strong></TableCell>
                 <TableCell><strong>Acciones</strong></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
+            </TableRow>
+          </TableHead>
+          <TableBody>
               {resultados.map((resultado) => (
                 <TableRow key={resultado._id}>
-                  <TableCell>
+                <TableCell>
                     <Typography variant="subtitle2" fontWeight="bold">
                       {obtenerNombreEvento(resultado.eventoId)}
                     </Typography>
-                  </TableCell>
+                </TableCell>
                   <TableCell>{obtenerNombreAtleta(resultado.atletaId)}</TableCell>
-                  <TableCell>
+                <TableCell>
                     <Chip label={resultado.categoria} color="primary" size="small" />
-                  </TableCell>
+                </TableCell>
                   <TableCell>{resultado.club || 'Independiente'}</TableCell>
                   <TableCell>{resultado.añoCompetitivo}</TableCell>
-                  <TableCell>
+                <TableCell>
                     <Box display="flex" gap={1}>
                       <IconButton
                         size="small"
@@ -354,31 +354,31 @@ const GestionResultados = () => {
                         color="secondary"
                         title="Editar"
                       >
-                        <EditIcon />
-                      </IconButton>
+                    <EditIcon />
+                  </IconButton>
                       <IconButton
                         size="small"
                         onClick={() => handleDelete(resultado._id)}
                         color="error"
                         title="Eliminar"
                       >
-                        <DeleteIcon />
-                      </IconButton>
+                    <DeleteIcon />
+                  </IconButton>
                     </Box>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
         )}
       </Paper>
 
       {/* Modal para crear/editar resultado */}
       <Dialog open={modalResultadoOpen} onClose={handleCloseModal} maxWidth="md" fullWidth>
         <DialogTitle>
-          <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
+            <Typography variant="h6" sx={{ color: '#800020', fontWeight: 'bold' }}>
             {editMode ? 'Editar Resultado' : 'Nuevo Resultado'}
-          </Typography>
+            </Typography>
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -555,8 +555,8 @@ const GestionResultados = () => {
                       <Typography variant="subtitle2" sx={{ mb: 1, color: '#800020' }}>
                         Prueba {index + 1}
                       </Typography>
-                      <TextField
-                        fullWidth
+              <TextField
+                fullWidth
                         label="Nombre de la Prueba"
                         value={prueba.nombre}
                         onChange={(e) => handlePruebaChange(index, 'nombre', e.target.value)}
@@ -565,14 +565,14 @@ const GestionResultados = () => {
                       />
                       <Grid container spacing={1}>
                         <Grid item xs={8}>
-                          <TextField
-                            fullWidth
-                            label="Marca"
+              <TextField
+                fullWidth
+                label="Marca"
                             value={prueba.marca}
                             onChange={(e) => handlePruebaChange(index, 'marca', e.target.value)}
                             size="small"
-                          />
-                        </Grid>
+              />
+            </Grid>
                         <Grid item xs={4}>
                           <FormControl fullWidth size="small">
                             <InputLabel>Unidad</InputLabel>
@@ -597,11 +597,11 @@ const GestionResultados = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseModal} sx={{ color: '#7A4069' }}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSubmit} 
+              variant="contained"
             startIcon={<SaveIcon />}
             sx={{ backgroundColor: '#800020' }}
           >
@@ -699,7 +699,7 @@ const GestionResultados = () => {
         <DialogActions>
           <Button onClick={() => setModalVerResultadoOpen(false)} sx={{ color: '#7A4069' }}>
             Cerrar
-          </Button>
+            </Button>
         </DialogActions>
       </Dialog>
     </Container>
