@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from "sweetalert2";
@@ -21,6 +21,17 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Hook para detectar cambios en el tamaño de pantalla
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleTogglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -128,16 +139,16 @@ function Login() {
       alignItems: 'center',
       minHeight: '100vh',
       backgroundColor: '#FFFFFF', // Fondo blanco puro en lugar de imagen
-      padding: '20px',
+      padding: isMobile ? '10px' : '20px',
     },
     contenedorLogin: {
       backgroundColor: '#F5E8C7', // Beige claro para el contenedor
-      borderRadius: '8px',
+      borderRadius: isMobile ? '12px' : '8px',
       boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)',
       display: 'flex',
-      maxWidth: '400px',
+      maxWidth: isMobile ? '100%' : '400px',
       width: '100%',
-      padding: '25px',
+      padding: isMobile ? '20px' : '25px',
       flexDirection: 'column',
     },
     contenedorFormulario: {
@@ -146,15 +157,15 @@ function Login() {
       justifyContent: 'center',
     },
     titulo: {
-      fontSize: '24px',
-      marginBottom: '20px',
+      fontSize: isMobile ? '20px' : '24px',
+      marginBottom: isMobile ? '16px' : '20px',
       color: '#800020', // Granada/vino para el título
       textAlign: 'center',
       fontWeight: '600',
       fontFamily: "'Arial', 'Helvetica', sans-serif",
     },
     campo: {
-      marginBottom: '15px',
+      marginBottom: isMobile ? '20px' : '15px',
       position: 'relative',
     },
     etiqueta: {
@@ -163,43 +174,46 @@ function Login() {
       fontWeight: '500',
       color: '#333333',
       fontFamily: "'Arial', 'Helvetica', sans-serif",
+      fontSize: isMobile ? '16px' : '14px',
     },
     input: {
       width: '100%',
-      padding: '10px 40px 10px 10px',
+      padding: isMobile ? '14px 40px 14px 14px' : '10px 40px 10px 10px',
       borderRadius: '5px',
       border: '1px solid #B0BEC5',
-      fontSize: '14px',
+      fontSize: isMobile ? '16px' : '14px',
       boxSizing: 'border-box',
       fontFamily: "'Arial', 'Helvetica', sans-serif",
+      minHeight: isMobile ? '44px' : 'auto',
     },
     boton: {
       backgroundColor: '#800020', // Granada/vino para el botón
       color: '#FFFFFF',
       border: 'none',
       borderRadius: '5px',
-      padding: '10px',
-      fontSize: '14px',
+      padding: isMobile ? '16px' : '10px',
+      fontSize: isMobile ? '16px' : '14px',
       fontWeight: '600',
       cursor: 'pointer',
       transition: 'background-color 0.3s',
       fontFamily: "'Arial', 'Helvetica', sans-serif",
+      minHeight: isMobile ? '44px' : 'auto',
       '&:hover': {
         backgroundColor: '#A52A2A', // Tono más claro para hover
       },
     },
     enlace: {
       display: 'block',
-      marginTop: '12px',
+      marginTop: isMobile ? '16px' : '12px',
       textDecoration: 'none',
       color: '#7A4069', // Morado medio para enlaces
-      fontSize: '12px',
+      fontSize: isMobile ? '14px' : '12px',
       textAlign: 'center',
       fontFamily: "'Arial', 'Helvetica', sans-serif",
     },
     error: {
       color: '#D32F2F', // Rojo oscuro para errores
-      fontSize: '12px',
+      fontSize: isMobile ? '14px' : '12px',
       marginTop: '5px',
       fontFamily: "'Arial', 'Helvetica', sans-serif",
     },
@@ -280,7 +294,7 @@ function Login() {
               ¿Olvidaste tu contraseña?
             </Link>
             <Link to="/registro" style={estilos.enlace}>Regístrate</Link>
-            <Link to="/registro-entrenador" style={estilos.enlace}>Registrar Entrenador</Link>
+           
           </form>
         </div>
       </div>
