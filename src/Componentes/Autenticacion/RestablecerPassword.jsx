@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 
 const API_BASE_URL = 'https://backendivd-mbok.onrender.com';
 
@@ -9,6 +11,8 @@ const RestablecerPassword = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { gmail, code } = location.state || {};
@@ -60,22 +64,77 @@ const RestablecerPassword = () => {
     <div style={{ maxWidth: 400, margin: '40px auto', background: '#F5E8C7', padding: 24, borderRadius: 12 }}>
       <h2 style={{ color: '#800020', textAlign: 'center' }}>Restablecer Contraseña</h2>
       <form onSubmit={handleSubmit}>
-        <input
-          type="password"
-          placeholder="Nueva contraseña"
-          value={newPassword}
-          onChange={e => setNewPassword(e.target.value)}
-          required
-          style={{ width: '100%', padding: 12, borderRadius: 6, border: '1px solid #ccc', marginBottom: 16 }}
-        />
-        <input
-          type="password"
-          placeholder="Confirmar contraseña"
-          value={confirmPassword}
-          onChange={e => setConfirmPassword(e.target.value)}
-          required
-          style={{ width: '100%', padding: 12, borderRadius: 6, border: '1px solid #ccc', marginBottom: 16 }}
-        />
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          <input
+            type={showNewPassword ? 'text' : 'password'}
+            placeholder="Nueva contraseña"
+            value={newPassword}
+            onChange={e => setNewPassword(e.target.value)}
+            required
+            style={{ 
+              width: '100%', 
+              padding: 12, 
+              paddingRight: 40,
+              borderRadius: 6, 
+              border: '1px solid #ccc'
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowNewPassword(!showNewPassword)}
+            style={{
+              position: 'absolute',
+              right: 12,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#666'
+            }}
+          >
+            <FontAwesomeIcon 
+              icon={showNewPassword ? faEyeSlash : faEye} 
+              size="sm"
+            />
+          </button>
+        </div>
+        
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          <input
+            type={showConfirmPassword ? 'text' : 'password'}
+            placeholder="Confirmar contraseña"
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            required
+            style={{ 
+              width: '100%', 
+              padding: 12, 
+              paddingRight: 40,
+              borderRadius: 6, 
+              border: '1px solid #ccc'
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            style={{
+              position: 'absolute',
+              right: 12,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#666'
+            }}
+          >
+            <FontAwesomeIcon 
+              icon={showConfirmPassword ? faEyeSlash : faEye} 
+              size="sm"
+            />
+          </button>
+        </div>
         <button
           type="submit"
           disabled={loading}
